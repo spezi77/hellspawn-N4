@@ -34,6 +34,7 @@
 #include <linux/syscalls.h>
 #include <linux/buffer_head.h> /* __set_page_dirty_buffers */
 #include <linux/pagevec.h>
+#include <linux/sched/rt.h>
 #include <trace/events/writeback.h>
 #include <linux/earlysuspend.h>
 

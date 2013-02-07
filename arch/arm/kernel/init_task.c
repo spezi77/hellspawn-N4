@@ -9,6 +9,7 @@
 #include <linux/init_task.h>
 #include <linux/mqueue.h>
 #include <linux/uaccess.h>
+#include <linux/sched/rt.h>
 
 #include <asm/pgtable.h>
 
