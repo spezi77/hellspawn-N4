@@ -2618,4 +2618,10 @@ config FORCE_FAST_CHARGE
 		A simple sysfs interface to force adapters that
 		are detected as USB to charge as AC.
 
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM mcmcpy enhancements"
+	help
+	  Faster memcpy performance for Krait
+
 endif
