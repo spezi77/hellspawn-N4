@@ -9,7 +9,6 @@
  *
  */
 
-#define DEBUG
 #define pr_fmt(fmt) "dyn_hotplug: " fmt
 
 #include <linux/kernel.h>
