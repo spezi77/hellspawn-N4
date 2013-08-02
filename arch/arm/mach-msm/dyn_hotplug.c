@@ -27,6 +27,8 @@
 #define UP_THRESHOLD	(25)
 #define MIN_ONLINE	(2)
 #define MAX_ONLINE	(4)
+#define DOWN_TIMER_CNT	(10)	/* 5 secs */
+#define UP_TIMER_CNT	(2)	/* 1 sec */
 
 static int enabled;
 static unsigned int up_threshold;
@@ -122,10 +124,10 @@ static __cpuinit void load_timer(struct work_struct *work)
 	unsigned int cpu;
 	unsigned int avg_load = 0;
 
-	if (hp_data->down_timer < 10)
+	if (hp_data->down_timer < DOWN_TIMER_CNT)
 		hp_data->down_timer++;
 
-	if (hp_data->up_timer < 2)
+	if (hp_data->up_timer < UP_TIMER_CNT)
 		hp_data->up_timer++;
 
 	for_each_online_cpu(cpu)
@@ -135,9 +137,10 @@ static __cpuinit void load_timer(struct work_struct *work)
 	pr_debug("%s: avg_load: %u, num_online_cpus: %u, down_timer: %u\n",
 		__func__, avg_load, num_online_cpus(), hp_data->down_timer);
 
-	if (avg_load >= hp_data->up_threshold && hp_data->up_timer >= 2)
+	if (avg_load >= hp_data->up_threshold &&
+					hp_data->up_timer >= UP_TIMER_CNT)
 		up_one();
-	else if (hp_data->down_timer >= 10)
+	else if (hp_data->down_timer >= DOWN_TIMER_CNT)
 		down_one();
 
 	schedule_delayed_work(&hp_data->work, hp_data->delay);
