@@ -65,7 +65,8 @@ static inline void down_all(void)
 	unsigned int cpu;
 
 	for_each_possible_cpu(cpu)
-		if (!cpu && cpu_online(cpu))
+		if (!cpu && cpu_online(cpu) &&
+				num_online_cpus() > hp_data->min_online)
 			cpu_down(cpu);
 }
 
