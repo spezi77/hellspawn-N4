@@ -26,15 +26,18 @@
 #define DELAY		(HZ / 2)
 #define UP_THRESHOLD	(25)
 #define MIN_ONLINE	(2)
+#define MAX_ONLINE	(4)
 
 static int enabled;
 static unsigned int up_threshold;
 static unsigned int min_online;
+static unsigned int max_online;
 
 struct dyn_hp_data {
 	unsigned int up_threshold;
 	unsigned int delay;
 	unsigned int min_online;
+	unsigned int max_online;
 	unsigned int down_timer;
 	unsigned int up_timer;
 	unsigned int enabled;
@@ -47,10 +50,19 @@ static inline void up_all(void)
 	unsigned int cpu;
 
 	for_each_possible_cpu(cpu)
-		if (!cpu_online(cpu))
+		if (!cpu_online(cpu) && num_online_cpus() < hp_data->max_online)
 			cpu_up(cpu);
 
 	hp_data->down_timer = 0;
+}
+
+static inline void down_all(void)
+{
+	unsigned int cpu;
+
+	for_each_possible_cpu(cpu)
+		if (!cpu && cpu_online(cpu))
+			cpu_down(cpu);
 }
 
 static void hp_early_suspend(struct early_suspend *h)
@@ -71,7 +83,8 @@ static inline void up_one(void)
 	unsigned int cpu;
 
 	/* All CPUs are online, return */
-	if (num_online_cpus() == num_possible_cpus())
+	if (num_online_cpus() == num_possible_cpus() ||
+		num_online_cpus() == hp_data->max_online)
 		return;
 
 	for_each_possible_cpu(cpu)
@@ -206,7 +219,7 @@ static __cpuinit int set_min_online(const char *val,
 	ret = kstrtouint(val, 10, &i);
 	if (ret)
 		return -EINVAL;
-	if (i < 1 || i > num_possible_cpus())
+	if (i < 1 || i > hp_data->max_online || i > num_possible_cpus())
 		return -EINVAL;
 
 	ret = param_set_uint(val, kp);
@@ -224,6 +237,34 @@ static struct kernel_param_ops min_online_ops = {
 
 module_param_cb(min_online, &min_online_ops, &min_online, 0644);
 
+static __cpuinit int set_max_online(const char *val,
+						const struct kernel_param *kp)
+{
+	int ret = 0;
+	unsigned int i;
+
+	ret = kstrtouint(val, 10, &i);
+	if (ret)
+		return -EINVAL;
+	if (i < 1 || i < hp_data->min_online || i > num_possible_cpus())
+		return -EINVAL;
+
+	ret = param_set_uint(val, kp);
+	if (ret == 0) {
+		hp_data->max_online = max_online;
+		down_all();
+		up_all();
+	}
+	return ret;
+}
+
+static struct kernel_param_ops max_online_ops = {
+	.set = set_max_online,
+	.get = param_get_uint,
+};
+
+module_param_cb(max_online, &max_online_ops, &max_online, 0644);
+
 static int __init dyn_hp_init(void)
 {
 	hp_data = kzalloc(sizeof(*hp_data), GFP_KERNEL);
@@ -233,6 +274,7 @@ static int __init dyn_hp_init(void)
 	hp_data->delay = DELAY;
 	hp_data->up_threshold = UP_THRESHOLD;
 	hp_data->min_online = MIN_ONLINE;
+	hp_data->max_online = MAX_ONLINE;
 
 	hp_data->suspend.suspend = hp_early_suspend;
 	hp_data->suspend.resume =  hp_late_resume;
@@ -241,6 +283,7 @@ static int __init dyn_hp_init(void)
 	up_threshold = hp_data->up_threshold;
 	enabled = hp_data->enabled;
 	min_online = hp_data->min_online;
+	max_online = hp_data->max_online;
 	register_early_suspend(&hp_data->suspend);
 
 	INIT_DELAYED_WORK(&hp_data->work, load_timer);
