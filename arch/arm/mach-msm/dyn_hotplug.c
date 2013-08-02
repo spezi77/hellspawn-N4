@@ -176,9 +176,17 @@ MODULE_PARM_DESC(enabled, "control dyn_hotplug");
 static int set_up_threshold(const char *val, const struct kernel_param *kp)
 {
 	int ret = 0;
+	unsigned int i;
+
+	ret = kstrtouint(val, 10, &i);
+	if (ret)
+		return -EINVAL;
+	if (i < 1 || i > 100)
+		return -EINVAL;
 
 	ret = param_set_uint(val, kp);
-	hp_data->up_threshold = up_threshold;
+	if (ret == 0)
+		hp_data->up_threshold = up_threshold;
 	return ret;
 }
 
@@ -193,10 +201,19 @@ static __cpuinit int set_min_online(const char *val,
 						const struct kernel_param *kp)
 {
 	int ret = 0;
+	unsigned int i;
+
+	ret = kstrtouint(val, 10, &i);
+	if (ret)
+		return -EINVAL;
+	if (i < 1 || i > num_possible_cpus())
+		return -EINVAL;
 
 	ret = param_set_uint(val, kp);
-	hp_data->min_online = min_online;
-	up_all();
+	if (ret == 0) {
+		hp_data->min_online = min_online;
+		up_all();
+	}
 	return ret;
 }
 
