@@ -68,9 +68,8 @@ static inline void down_all(void)
 {
 	unsigned int cpu;
 
-	for_each_possible_cpu(cpu)
-		if (!cpu && cpu_online(cpu) &&
-				num_online_cpus() > hp_data->min_online)
+	for_each_online_cpu(cpu)
+		if (cpu && num_online_cpus() > hp_data->min_online)
 			cpu_down(cpu);
 }
 
@@ -247,7 +246,8 @@ static __cpuinit int set_min_online(const char *val,
 	ret = param_set_uint(val, kp);
 	if (ret == 0) {
 		hp_data->min_online = min_online;
-		up_all(true);
+		if (hp_data->enabled)
+			up_all(true);
 	}
 	return ret;
 }
@@ -274,8 +274,10 @@ static __cpuinit int set_max_online(const char *val,
 	ret = param_set_uint(val, kp);
 	if (ret == 0) {
 		hp_data->max_online = max_online;
-		down_all();
-		up_all(true);
+		if (hp_data->enabled) {
+			down_all();
+			up_all(true);
+		}
 	}
 	return ret;
 }
