@@ -112,20 +112,29 @@ static inline void up_one(void)
 static inline void down_one(void)
 {
 	unsigned int cpu;
+	unsigned int l_cpu = 0;
+	unsigned int l_freq = ~0;
 
 	/* Min online CPUs, return */
 	if (num_online_cpus() == hp_data->min_online)
 		return;
 
+	get_online_cpus();
+
 	for_each_online_cpu(cpu)
 		if (cpu) {
-			cpu_down(cpu);
+			unsigned int cur = cpufreq_quick_get(cpu);
 
-			hp_data->down_timer = 0;
-			hp_data->up_timer = 0;
+			if (l_freq > cur) {
+				l_freq = cur;
+				l_cpu = cpu;
+			}
+		}	
+	put_online_cpus();
 
-			break;
-		}
+	cpu_down(l_cpu);
+	hp_data->down_timer = 0;
+	hp_data->up_timer = 0;
 }
 
 /*
