@@ -167,14 +167,14 @@ static __cpuinit void load_timer(struct work_struct *work)
 	else if (hp_data->down_timer >= DOWN_TIMER_CNT)
 		down_one();
 
-	schedule_delayed_work(&hp_data->work, hp_data->delay);
+	schedule_delayed_work_on(0, &hp_data->work, hp_data->delay);
 }
 
 static void dyn_hp_enable(void)
 {
 	if (hp_data->enabled)
 		return;
-	schedule_delayed_work(&hp_data->work, hp_data->delay);
+	schedule_delayed_work_on(0, &hp_data->work, hp_data->delay);
 	register_early_suspend(&hp_data->suspend);
 	hp_data->enabled = 1;
 }
@@ -322,7 +322,7 @@ static int __init dyn_hp_init(void)
 	register_early_suspend(&hp_data->suspend);
 
 	INIT_DELAYED_WORK(&hp_data->work, load_timer);
-	schedule_delayed_work(&hp_data->work, hp_data->delay);
+	schedule_delayed_work_on(0, &hp_data->work, hp_data->delay);
 
 	pr_info("%s: activated\n", __func__);
 
