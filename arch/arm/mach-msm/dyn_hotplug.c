@@ -129,7 +129,7 @@ static inline void down_one(void)
 				l_freq = cur;
 				l_cpu = cpu;
 			}
-		}	
+		}
 	put_online_cpus();
 
 	cpu_down(l_cpu);
