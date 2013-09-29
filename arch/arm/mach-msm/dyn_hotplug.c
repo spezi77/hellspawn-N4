@@ -43,6 +43,7 @@ struct dyn_hp_data {
 	unsigned int down_timer;
 	unsigned int up_timer;
 	unsigned int enabled;
+	unsigned int saved_min_online;
 	struct delayed_work work;
 	struct early_suspend suspend;
 } *hp_data;
@@ -76,7 +77,9 @@ static inline void down_all(void)
 static void hp_early_suspend(struct early_suspend *h)
 {
 	pr_debug("%s: num_online_cpus: %u\n", __func__, num_online_cpus());
-	return;
+
+	hp_data->saved_min_online = hp_data->min_online;
+	hp_data->min_online = 1;
 }
 
 /* On late resume bring online all CPUs to prevent lags */
@@ -84,6 +87,7 @@ static __cpuinit void hp_late_resume(struct early_suspend *h)
 {
 	pr_debug("%s: num_online_cpus: %u\n", __func__, num_online_cpus());
 
+	hp_data->min_online = hp_data->saved_min_online;
 	up_all(true);
 }
 
@@ -255,6 +259,7 @@ static __cpuinit int set_min_online(const char *val,
 	ret = param_set_uint(val, kp);
 	if (ret == 0) {
 		hp_data->min_online = min_online;
+		hp_data->saved_min_online = min_online;
 		if (hp_data->enabled)
 			up_all(true);
 	}
