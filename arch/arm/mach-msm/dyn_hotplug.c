@@ -97,19 +97,16 @@ static inline void up_one(void)
 	unsigned int cpu;
 
 	/* All CPUs are online, return */
-	if (num_online_cpus() == num_possible_cpus() ||
-		num_online_cpus() == hp_data->max_online)
+	if (num_online_cpus() == hp_data->max_online)
 		return;
 
-	for_each_possible_cpu(cpu)
-		if (cpu && !cpu_online(cpu)) {
-			cpu_up(cpu);
+	cpu = cpumask_next_zero(0, cpu_online_mask);
+	if (cpu < nr_cpu_ids) {
+		cpu_up(cpu);
 
-			hp_data->down_timer = 0;
-			hp_data->up_timer = 0;
-
-			break;
-		}
+		hp_data->down_timer = 0;
+		hp_data->up_timer = 0;
+	}
 }
 
 /* Iterate through online CPUs and bring online the first one */
