@@ -354,3 +354,10 @@ config PARTIALRESUME
 	  partial-resume handlers associated with them, and they all return
 	  true.
 
+config SPEEDUP_KEYRESUME
+	bool "Speed up late resume"
+	depends on SUSPEND
+	default y
+	---help---
+	  Speed up system resume
+
