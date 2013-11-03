@@ -85,6 +85,13 @@ choice
 		  to the screen and notifies user-space when it should resume.
 endchoice
 
+config POWERSUSPEND
+	bool "Power suspend"
+	default y
+	---help---
+	  Call early suspend handlers when the user requested sleep state
+	  changes.
+
 config HIBERNATE_CALLBACKS
 	bool
 
