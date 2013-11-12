@@ -274,8 +274,7 @@ static struct attribute_group power_suspend_attr_group =
 
 static struct kobject *power_suspend_kobj;
 
-// ------------------------------------------ sysfs interface ------------------------------------------
-
+// ------------------ sysfs interface -----------------------
 static int __init power_suspend_init(void)
 {
 
@@ -304,9 +303,9 @@ static int __init power_suspend_init(void)
 	}
 
 //	mode = POWER_SUSPEND_AUTOSLEEP;	// Yank555.lu : Default to autosleep mode
-//	mode = POWER_SUSPEND_USERSPACE;	// Yank555.lu : Default to userspace mode
+	mode = POWER_SUSPEND_USERSPACE;	// Yank555.lu : Default to userspace mode
 //	mode = POWER_SUSPEND_PANEL;	// Yank555.lu : Default to display panel mode
-	mode = POWER_SUSPEND_HYBRID;	// Yank555.lu : Default to display panel / autosleep hybrid mode
+//	mode = POWER_SUSPEND_HYBRID;	// Yank555.lu : Default to display panel / autosleep hybrid mode
 
 	return 0;
 }
