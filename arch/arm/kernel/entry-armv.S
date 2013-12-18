@@ -560,7 +560,7 @@ ENDPROC(__und_usr)
  *  r9  = normal "successful" return address
  *  r10 = this threads thread_info structure
  *  lr  = unrecognised instruction return address
- * IRQs enabled, FIQs enabled.
+ * IRQs disabled, FIQs enabled.
  */
 	@
 	@ Fall-through from Thumb-2 __und_usr
@@ -699,7 +699,8 @@ __und_usr_fault_32:
 	b	1f
 __und_usr_fault_16:
 	mov	r1, #2
-1:	mov	r0, sp
+1:	enable_irq
+	mov	r0, sp
 	adr	lr, BSYM(ret_from_exception)
 	b	__und_fault
 ENDPROC(__und_usr_fault_32)
