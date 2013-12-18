@@ -1004,69 +1004,105 @@ static int futex_lock_pi_atomic(u32 __user *uaddr, struct futex_hash_bucket *hb,
 				struct futex_pi_state **ps,
 				struct task_struct *task, int set_waiters)
 {
-	u32 uval, newval, vpid = task_pid_vnr(task);
-	struct futex_q *match;
-	int ret;
+	int lock_taken, ret, force_take = 0;
+	u32 uval, newval, curval, vpid = task_pid_vnr(task);
+
+retry:
+	ret = lock_taken = 0;
 
 	/*
-	 * Read the user space value first so we can validate a few
-	 * things before proceeding further.
+	 * To avoid races, we attempt to take the lock here again
+	 * (by doing a 0 -> TID atomic cmpxchg), while holding all
+	 * the locks. It will most likely not succeed.
 	 */
-	if (get_futex_value_locked(&uval, uaddr))
+	newval = vpid;
+	if (set_waiters)
+		newval |= FUTEX_WAITERS;
+
+	if (unlikely(cmpxchg_futex_value_locked(&curval, uaddr, 0, newval)))
 		return -EFAULT;
 
 	/*
 	 * Detect deadlocks.
 	 */
-	if ((unlikely((uval & FUTEX_TID_MASK) == vpid)))
+	if ((unlikely((curval & FUTEX_TID_MASK) == vpid)))
 		return -EDEADLK;
 
 	/*
-	 * Lookup existing state first. If it exists, try to attach to
-	 * its pi_state.
+	 * Surprise - we got the lock. Just return to userspace:
 	 */
-	match = futex_top_waiter(hb, key);
-	if (match)
-		return attach_to_pi_state(uval, match->pi_state, ps);
+	if (unlikely(!curval))
+		return 1;
+
+	uval = curval;
 
 	/*
-	 * No waiter and user TID is 0. We are here because the
-	 * waiters or the owner died bit is set or called from
-	 * requeue_cmp_pi or for whatever reason something took the
-	 * syscall.
+	 * Set the FUTEX_WAITERS flag, so the owner will know it has someone
+	 * to wake at the next unlock.
 	 */
-	if (!(uval & FUTEX_TID_MASK)) {
+	newval = curval | FUTEX_WAITERS;
+
+	/*
+	 * Should we force take the futex? See below.
+	 */
+	if (unlikely(force_take)) {
 		/*
-		 * We take over the futex. No other waiters and the user space
-		 * TID is 0. We preserve the owner died bit.
+		 * Keep the OWNER_DIED and the WAITERS bit and set the
+		 * new TID value.
 		 */
-		newval = uval & FUTEX_OWNER_DIED;
-		newval |= vpid;
-
-		/* The futex requeue_pi code can enforce the waiters bit */
-		if (set_waiters)
-			newval |= FUTEX_WAITERS;
-
-		ret = lock_pi_update_atomic(uaddr, uval, newval);
-		/* If the take over worked, return 1 */
-		return ret < 0 ? ret : 1;
+		newval = (curval & ~FUTEX_TID_MASK) | vpid;
+		force_take = 0;
+		lock_taken = 1;
 	}
 
+	if (unlikely(cmpxchg_futex_value_locked(&curval, uaddr, uval, newval)))
+		return -EFAULT;
+	if (unlikely(curval != uval))
+		goto retry;
+
 	/*
-	 * First waiter. Set the waiters bit before attaching ourself to
-	 * the owner. If owner tries to unlock, it will be forced into
-	 * the kernel and blocked on hb->lock.
+	 * We took the lock due to forced take over.
 	 */
-	newval = uval | FUTEX_WAITERS;
-	ret = lock_pi_update_atomic(uaddr, uval, newval);
-	if (ret)
-		return ret;
+	if (unlikely(lock_taken))
+		return 1;
+
 	/*
-	 * If the update of the user space value succeeded, we try to
-	 * attach to the owner. If that fails, no harm done, we only
-	 * set the FUTEX_WAITERS bit in the user space variable.
+	 * We dont have the lock. Look up the PI state (or create it if
+	 * we are the first waiter):
 	 */
-	return attach_to_pi_owner(uval, key, ps);
+	ret = lookup_pi_state(uval, hb, key, ps);
+
+	if (unlikely(ret)) {
+		switch (ret) {
+		case -ESRCH:
+			/*
+			 * We failed to find an owner for this
+			 * futex. So we have no pi_state to block
+			 * on. This can happen in two cases:
+			 *
+			 * 1) The owner died
+			 * 2) A stale FUTEX_WAITERS bit
+			 *
+			 * Re-read the futex value.
+			 */
+			if (get_futex_value_locked(&curval, uaddr))
+				return -EFAULT;
+
+			/*
+			 * If the owner died or we have a stale
+			 * WAITERS bit the owner TID in the user space
+			 * futex is 0.
+			 */
+			if (!(curval & FUTEX_TID_MASK)) {
+				force_take = 1;
+				goto retry;
+			}
+		default:
+			break;
+		}
+	}
+
+	return ret;
 }
 
 /**
