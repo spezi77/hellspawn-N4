@@ -23,6 +23,7 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 
+#define INIT_DELAY	(60 * HZ) /* Initial delay to 60 sec */
 #define DELAY		(HZ / 2)
 #define UP_THRESHOLD	(25)
 #define MIN_ONLINE	(2)
@@ -324,7 +325,7 @@ static int __init dyn_hp_init(void)
 	register_early_suspend(&hp_data->suspend);
 
 	INIT_DELAYED_WORK(&hp_data->work, load_timer);
-	schedule_delayed_work_on(0, &hp_data->work, hp_data->delay);
+	schedule_delayed_work_on(0, &hp_data->work, INIT_DELAY);
 
 	pr_info("%s: activated\n", __func__);
 
