@@ -119,6 +119,157 @@ int update_devfreq(struct devfreq *devfreq)
 	devfreq->previous_freq = freq;
 	return err;
 }
+EXPORT_SYMBOL(update_devfreq);
+
+/**
+ * devfreq_monitor() - Periodically poll devfreq objects.
+ * @work:	the work struct used to run devfreq_monitor periodically.
+ *
+ */
+static void devfreq_monitor(struct work_struct *work)
+{
+	int err;
+	struct devfreq *devfreq = container_of(work,
+					struct devfreq, work.work);
+
+	mutex_lock(&devfreq->lock);
+	err = update_devfreq(devfreq);
+	if (err)
+		dev_err(&devfreq->dev, "dvfs failed with (%d) error\n", err);
+
+	queue_delayed_work(devfreq_wq, &devfreq->work,
+				msecs_to_jiffies(devfreq->profile->polling_ms));
+	mutex_unlock(&devfreq->lock);
+}
+
+/**
+ * devfreq_monitor_start() - Start load monitoring of devfreq instance
+ * @devfreq:	the devfreq instance.
+ *
+ * Helper function for starting devfreq device load monitoing. By
+ * default delayed work based monitoring is supported. Function
+ * to be called from governor in response to DEVFREQ_GOV_START
+ * event when device is added to devfreq framework.
+ */
+void devfreq_monitor_start(struct devfreq *devfreq)
+{
+	INIT_DEFERRABLE_WORK(&devfreq->work, devfreq_monitor);
+	if (devfreq->profile->polling_ms)
+		queue_delayed_work(devfreq_wq, &devfreq->work,
+			msecs_to_jiffies(devfreq->profile->polling_ms));
+}
+EXPORT_SYMBOL(devfreq_monitor_start);
+
+/**
+ * devfreq_monitor_stop() - Stop load monitoring of a devfreq instance
+ * @devfreq:	the devfreq instance.
+ *
+ * Helper function to stop devfreq device load monitoing. Function
+ * to be called from governor in response to DEVFREQ_GOV_STOP
+ * event when device is removed from devfreq framework.
+ */
+void devfreq_monitor_stop(struct devfreq *devfreq)
+{
+	cancel_delayed_work_sync(&devfreq->work);
+}
+EXPORT_SYMBOL(devfreq_monitor_stop);
+
+/**
+ * devfreq_monitor_suspend() - Suspend load monitoring of a devfreq instance
+ * @devfreq:	the devfreq instance.
+ *
+ * Helper function to suspend devfreq device load monitoing. Function
+ * to be called from governor in response to DEVFREQ_GOV_SUSPEND
+ * event or when polling interval is set to zero.
+ *
+ * Note: Though this function is same as devfreq_monitor_stop(),
+ * intentionally kept separate to provide hooks for collecting
+ * transition statistics.
+ */
+void devfreq_monitor_suspend(struct devfreq *devfreq)
+{
+	mutex_lock(&devfreq->lock);
+	if (devfreq->stop_polling) {
+		mutex_unlock(&devfreq->lock);
+		return;
+	}
+
+	devfreq->stop_polling = true;
+	mutex_unlock(&devfreq->lock);
+	cancel_delayed_work_sync(&devfreq->work);
+}
+EXPORT_SYMBOL(devfreq_monitor_suspend);
+
+/**
+ * devfreq_monitor_resume() - Resume load monitoring of a devfreq instance
+ * @devfreq:    the devfreq instance.
+ *
+ * Helper function to resume devfreq device load monitoing. Function
+ * to be called from governor in response to DEVFREQ_GOV_RESUME
+ * event or when polling interval is set to non-zero.
+ */
+void devfreq_monitor_resume(struct devfreq *devfreq)
+{
+	mutex_lock(&devfreq->lock);
+	if (!devfreq->stop_polling)
+		goto out;
+
+	if (!delayed_work_pending(&devfreq->work) &&
+			devfreq->profile->polling_ms)
+		queue_delayed_work(devfreq_wq, &devfreq->work,
+			msecs_to_jiffies(devfreq->profile->polling_ms));
+	devfreq->stop_polling = false;
+
+out:
+	mutex_unlock(&devfreq->lock);
+}
+EXPORT_SYMBOL(devfreq_monitor_resume);
+
+/**
+ * devfreq_interval_update() - Update device devfreq monitoring interval
+ * @devfreq:    the devfreq instance.
+ * @delay:      new polling interval to be set.
+ *
+ * Helper function to set new load monitoring polling interval. Function
+ * to be called from governor in response to DEVFREQ_GOV_INTERVAL event.
+ */
+void devfreq_interval_update(struct devfreq *devfreq, unsigned int *delay)
+{
+	unsigned int cur_delay = devfreq->profile->polling_ms;
+	unsigned int new_delay = *delay;
+
+	mutex_lock(&devfreq->lock);
+
+	if (devfreq->stop_polling)
+		goto out;
+
+	/* if new delay is zero, stop polling */
+	if (!new_delay) {
+		mutex_unlock(&devfreq->lock);
+		cancel_delayed_work_sync(&devfreq->work);
+		return;
+	}
+
+	/* if current delay is zero, start polling with new delay */
+	if (!cur_delay) {
+		queue_delayed_work(devfreq_wq, &devfreq->work,
+			msecs_to_jiffies(devfreq->profile->polling_ms));
+		goto out;
+	}
+
+	/* if current delay is greater than new delay, restart polling */
+	if (cur_delay > new_delay) {
+		mutex_unlock(&devfreq->lock);
+		cancel_delayed_work_sync(&devfreq->work);
+		mutex_lock(&devfreq->lock);
+		if (!devfreq->stop_polling)
+			queue_delayed_work(devfreq_wq, &devfreq->work,
+			      msecs_to_jiffies(devfreq->profile->polling_ms));
+	}
+out:
+	mutex_unlock(&devfreq->lock);
+}
+EXPORT_SYMBOL(devfreq_interval_update);
 
 /**
  * devfreq_notifier_call() - Notify that the device frequency requirements
@@ -496,6 +647,8 @@ static ssize_t store_polling_interval(struct device *dev,
 			 = msecs_to_jiffies(value);
 	mutex_unlock(&df->lock);
 
+	df->profile->polling_ms = value;
+	df->governor->event_handler(df, DEVFREQ_GOV_INTERVAL, &value);
 	ret = count;
 
 	if (df->governor->no_central_polling)
