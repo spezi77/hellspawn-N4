@@ -145,17 +145,14 @@ ENTRY(memmove)
 11:		stmfd	sp!, {r5 - r9}
 
 	PLD(	pld	[r1, #-4]		)
+	PLD(	subs	r2, r2, #320		)
 	PLD(	pld	[r1, #-68]		)
 	PLD(	pld	[r1, #-132]		)
+	PLD(	blt	13f			)
 	PLD(	pld	[r1, #-196]		)
 	PLD(	pld	[r1, #-260]		)
 	PLD(	pld	[r1, #-324]		)
-	PLD(	subs	r2, r2, #512		)
-	PLD(	pld	[r1, #-388]		)
-	PLD(	pld	[r1, #-452]		)
-	PLD(	blt	13f			)
-	PLD(	pld	[r1, #-516]		)
-12:	PLD(	pld	[r1, #-580]		)
+12:	PLD(	pld	[r1, #-388]		)
 13:		ldmdb   r1!, {r7, r8, r9, ip}
 		mov     lr, r3, push #\push
 		subs    r2, r2, #32
