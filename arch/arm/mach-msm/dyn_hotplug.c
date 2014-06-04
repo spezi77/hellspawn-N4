@@ -99,15 +99,14 @@ static inline void up_one(void)
 
 	/* All CPUs are online, return */
 	if (num_online_cpus() == hp_data->max_online)
-		return;
+		goto out;
 
 	cpu = cpumask_next_zero(0, cpu_online_mask);
-	if (cpu < nr_cpu_ids) {
+	if (cpu < nr_cpu_ids)
 		cpu_up(cpu);
-
-		hp_data->down_timer = 0;
-		hp_data->up_timer = 0;
-	}
+out:
+	hp_data->down_timer = 0;
+	hp_data->up_timer = 0;
 }
 
 /* Iterate through online CPUs and bring online the first one */
@@ -119,7 +118,7 @@ static inline void down_one(void)
 
 	/* Min online CPUs, return */
 	if (num_online_cpus() == hp_data->min_online)
-		return;
+		goto out;
 
 	get_online_cpus();
 
@@ -135,6 +134,7 @@ static inline void down_one(void)
 	put_online_cpus();
 
 	cpu_down(l_cpu);
+out:
 	hp_data->down_timer = 0;
 	hp_data->up_timer = 0;
 }
