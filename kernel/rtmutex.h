@@ -34,3 +34,4 @@ static inline bool debug_rt_mutex_detect_deadlock(struct rt_mutex_waiter *w,
 {
 	return walk == RT_MUTEX_FULL_CHAINWALK;
 }
+
