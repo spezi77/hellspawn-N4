@@ -775,6 +775,25 @@ static inline int touch_within_limits(struct lge_touch_data *ts, int id)
 		ts->ts_data.curr_data[id].y_position < ts->pdata->caps->lcd_y + dy);
 }
 
+static unsigned int calc_ts_feather(struct lge_touch_data *ts, int coord, int id)
+{
+	int ret;
+
+	if (coord < 0 || coord > 1)
+		return -EINVAL;
+
+	if (coord)
+		ret = ts->ts_data.curr_data[id].x_position - ts->ts_data.curr_data[id].x_position_pre;
+	else
+		ret = ts->ts_data.curr_data[id].y_position - ts->ts_data.curr_data[id].y_position_pre;
+
+	if (ret < 0)
+		ret = ret * (-1);
+
+	TOUCH_DEBUG_MSG("CALC_COORD: %d\n", ret);
+	return ret;
+}
+
 static inline void touch_check_dt_wake(struct lge_touch_data *ts, int id)
 {
 	unsigned long diff_time;
@@ -785,10 +804,42 @@ static inline void touch_check_dt_wake(struct lge_touch_data *ts, int id)
 			diff_time, ts->dt_wake.hits,
 			ts->ts_data.curr_data[id].x_position,
 			ts->ts_data.curr_data[id].y_position, id);
-	/* Out of boundary. Reset hits and return */
-	if (!touch_within_limits(ts, id)) {
-		TOUCH_DEBUG_MSG("Out of boundary\n");
-		goto reset;
+
+	/* Check gesture profiles */
+
+	/* 1 - Center */
+	if (ts->dt_wake.enabled == 1) {
+		if (!touch_within_limits(ts, id)) {
+			TOUCH_DEBUG_MSG("Out of boundary\n");
+			goto reset;
+		}
+
+	/* 2 - Full */
+	} else if (ts->dt_wake.enabled == 2) {
+		if (!((calc_ts_feather(ts, 0, id) < ts->dt_wake.feather) && (calc_ts_feather(ts, 1, id) < ts->dt_wake.feather))) {
+				goto reset;
+				return;
+		}
+
+	/* 3 - Bottom Half */
+	} else if (ts->dt_wake.enabled == 3) {
+		if (ts->ts_data.curr_data[id].y_position > 1280) {
+			if (!((calc_ts_feather(ts, 0, id) < ts->dt_wake.feather) && (calc_ts_feather(ts, 1, id) < ts->dt_wake.feather))) {
+				goto reset;
+				return;
+			}
+		} else
+			return;
+
+	/* 4 - Upper Half */
+	} else if (ts->dt_wake.enabled == 4) {
+		if (ts->ts_data.curr_data[id].y_position < 1280) {
+			if (!((calc_ts_feather(ts, 0, id) < ts->dt_wake.feather) && (calc_ts_feather(ts, 1, id) < ts->dt_wake.feather))) {
+				goto reset;
+				return;
+			}
+		} else
+			return;
 	}
 
 	/* Timeout. Reset hits and return */
@@ -810,13 +861,12 @@ static inline void touch_check_dt_wake(struct lge_touch_data *ts, int id)
 		/* Touch released. Increase hits */
 		TOUCH_DEBUG_MSG("Touch released. Increase hits\n");
 		ts->dt_wake.hits++;
-
 		ts->ts_data.curr_data[id].state = 0;
 	}
 
 	if (ts->dt_wake.hits < 2)
 		return;
-	
+
 	/* Double tap detected try to resume */
 	TOUCH_INFO_MSG("Double tap detected try to resume\n");
 
@@ -1007,6 +1057,10 @@ static void touch_work_func(struct work_struct *work)
 #endif
 	if (unlikely(touch_debug_mask & DEBUG_TRACE))
 		TOUCH_DEBUG_MSG("\n");
+
+	/* Log previous coordinates */
+	ts->ts_data.curr_data[0].x_position_pre = ts->ts_data.curr_data[0].x_position;
+	ts->ts_data.curr_data[0].y_position_pre = ts->ts_data.curr_data[0].y_position;
 
 	ret = touch_device_func->data(ts->client, ts->ts_data.curr_data,
 		&ts->ts_data.curr_button, &ts->ts_data.total_num);
@@ -1831,7 +1885,7 @@ static ssize_t store_dt_wake_enabled(struct lge_touch_data *ts, const char *buf,
 	int ret;
 
 	ret = sscanf(buf, "%u", &value);
-	if (value < 0 || value > 1)
+	if (value < 0 || value > 4)
 		return -EINVAL;
 
 	if (ts->curr_resume_state == 0) {
@@ -1867,6 +1921,29 @@ static ssize_t store_dt_wake_pwr_disable(struct lge_touch_data *ts, const char *
 	return count;
 }
 
+static ssize_t show_dt_wake_feather(struct lge_touch_data *ts, char *buf)
+{
+	int ret = 0;
+
+	ret = sprintf(buf, "%u\n", ts->dt_wake.feather);
+
+	return ret;
+}
+
+static ssize_t store_dt_wake_feather(struct lge_touch_data *ts, const char *buf, size_t count)
+{
+	unsigned int value;
+	int ret;
+
+	ret = sscanf(buf, "%u", &value);
+	if (value < 50 || value > 2560)
+		return -EINVAL;
+
+	ts->dt_wake.feather = value;
+
+	return count;
+}
+
 #endif
 
 static LGE_TOUCH_ATTR(platform_data, S_IRUGO | S_IWUSR, show_platform_data, NULL);
@@ -1885,11 +1962,8 @@ static LGE_TOUCH_ATTR(charger, S_IRUGO | S_IWUSR, show_charger, NULL);
 #ifdef CONFIG_DOUBLETAP_WAKE
 static LGE_TOUCH_ATTR(dt_wake_enabled, S_IRUGO | S_IWUSR, show_dt_wake_enabled,
 					store_dt_wake_enabled);
-#endif
-
-#ifdef CONFIG_DOUBLETAP_WAKE
-static LGE_TOUCH_ATTR(dt_wake_enabled, S_IRUGO | S_IWUSR, show_dt_wake_enabled,
-					store_dt_wake_enabled);
+static LGE_TOUCH_ATTR(dt_wake_feather, S_IRUGO | S_IWUSR,
+			show_dt_wake_feather, store_dt_wake_feather);
 static LGE_TOUCH_ATTR(dt_wake_pwr_disable, S_IRUGO | S_IWUSR,
 			show_dt_wake_pwr_disable, store_dt_wake_pwr_disable);
 #endif
@@ -1907,6 +1981,7 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_charger.attr,
 #ifdef CONFIG_DOUBLETAP_WAKE
 	&lge_touch_attr_dt_wake_enabled.attr,
+	&lge_touch_attr_dt_wake_feather.attr,
 	&lge_touch_attr_dt_wake_pwr_disable.attr,
 #endif
 	NULL,
@@ -1953,7 +2028,7 @@ static const struct sysfs_ops lge_touch_sysfs_ops = {
 
 static struct kobj_type lge_touch_kobj_type = {
 	.sysfs_ops	= &lge_touch_sysfs_ops,
-	.default_attrs 	= lge_touch_attribute_list,
+	.default_attrs	= lge_touch_attribute_list,
 };
 
 static struct sysdev_class lge_touch_sys_class = {
@@ -2245,6 +2320,7 @@ static int touch_probe(struct i2c_client *client,
 #ifdef CONFIG_DOUBLETAP_WAKE
 	mutex_init(&ts->dt_wake.lock);
 	ts->dt_wake.enabled = 0;
+	ts->dt_wake.feather = 200;
 	ts->dt_wake.pwr_disable = 0;
 	ts->dt_wake.pending_status = 0;
 	ts->dt_wake.hits = 0;
