@@ -1622,6 +1622,12 @@ config MSM_SLEEPER
 	help
 	  Limit max frequency and shut off cores while screen is off
 
+config USERSPACE_VOLTAGE_CONTROL
+	bool "Enable Userspace CPU Voltage Control"
+	default y
+	help
+	  Userspace Voltage Control
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n
