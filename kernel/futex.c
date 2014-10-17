@@ -365,6 +365,8 @@ static void drop_futex_key_refs(union futex_key *key)
 	case FUT_OFF_MMSHARED:
 		mmdrop(key->private.mm);
 		break;
+	default:
+		smp_mb(); /* explicit MB (B) */
 	}
 }
 
