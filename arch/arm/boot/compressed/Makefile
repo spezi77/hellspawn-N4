@@ -13,17 +13,19 @@ ifeq ($(CONFIG_ZBOOT_ROM_MMCIF),y)
 OBJS		+= mmcif-sh7372.o
 endif
 
-# Ensure that SDHI loader code appears early in the image
-# to minimise that number of bocks that have to be read in
-# order to load it.
-ifeq ($(CONFIG_ZBOOT_ROM_SH_MOBILE_SDHI),y)
-OBJS		+= sdhi-shmobile.o
-OBJS		+= sdhi-sh7372.o
-endif
-
 AFLAGS_head.o += -DTEXT_OFFSET=$(TEXT_OFFSET)
+AFLAGS_head.o += -Wa,-mcpu=cortex-a15
 HEAD	= head.o
-OBJS	+= misc.o decompress.o
+OBJS	+= misc.o
+
+AFLAGS_misc.o += -Wa,-mcpu=cortex-a15
+MISC = misc.o
+
+AFLAGS_decompress.o += -Wa,-mcpu=cortex-a15
+DECOMPRESS = decompress.o
+ifeq ($(CONFIG_KERNEL_LZ4),y)
+CFLAGS_decompress.o := -Os
+endif
 FONTC	= $(srctree)/drivers/video/console/font_acorn_8x8.c
 
 # string library code (-Os is enforced to keep it much smaller)
@@ -113,8 +115,8 @@ endif
 
 targets       := vmlinux vmlinux.lds \
 		 piggy.$(suffix_y) piggy.$(suffix_y).o \
-		 lib1funcs.o lib1funcs.S ashldi3.o ashldi3.S \
-		 font.o font.c head.o misc.o $(OBJS)
+		 lib1funcs.o lib1funcs.S ashldi3.o ashldi3.S bswapsdi2.o\
+		 font.o font.c head.o misc.o decompress.o $(OBJS)
 
 # Make sure files are removed during clean
 extra-y       += piggy.gzip piggy.lzo piggy.lzma piggy.xzkern \
@@ -125,8 +127,8 @@ ORIG_CFLAGS := $(KBUILD_CFLAGS)
 KBUILD_CFLAGS = $(subst -pg, , $(ORIG_CFLAGS))
 endif
 
-ccflags-y := -fpic -mno-single-pic-base -fno-builtin -I$(obj)
-asflags-y := -Wa,-march=armv7-a
+ccflags-y := -fpic -fno-builtin -I$(obj)
+asflags-y := -Wa,-march=all
 
 # Supply kernel BSS size to the decompressor via a linker symbol.
 KBSS_SZ = $(shell $(CROSS_COMPILE)size $(obj)/../../../../vmlinux | \
@@ -149,12 +151,14 @@ LDFLAGS_vmlinux += -X
 LDFLAGS_vmlinux += -T
 
 # For __aeabi_uidivmod
+AFLAGS_lib1funcs.o += -Wa,-mcpu=cortex-a15
 lib1funcs = $(obj)/lib1funcs.o
 
 $(obj)/lib1funcs.S: $(srctree)/arch/$(SRCARCH)/lib/lib1funcs.S
 	$(call cmd,shipped)
 
 # For __aeabi_llsl
+AFLAGS_ashldi3.o += -Wa,-mcpu=cortex-a15
 ashldi3 = $(obj)/ashldi3.o
 
 $(obj)/ashldi3.S: $(srctree)/arch/$(SRCARCH)/lib/ashldi3.S
@@ -180,12 +184,14 @@ if [ $(words $(ZRELADDR)) -gt 1 -a "$(CONFIG_AUTO_ZRELADDR)" = "" ]; then \
 	false; \
 fi
 
-$(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/$(HEAD) $(obj)/piggy.$(suffix_y).o \
-		$(addprefix $(obj)/, $(OBJS)) $(lib1funcs) $(ashldi3) FORCE
+$(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/$(HEAD) $(obj)/$(MISC) $(obj)/$(DECOMPRESS) $(obj)/piggy.$(suffix_y).o \
+		$(addprefix $(obj)/, $(OBJS)) $(lib1funcs) $(ashldi3) \
+		$(bswapsdi2) FORCE
 	@$(check_for_multiple_zreladdr)
 	$(call if_changed,ld)
 	@$(check_for_bad_syms)
 
+AFLAGS_piggy.$(suffix_y).o += -Wa,-mcpu=cortex-a15
 $(obj)/piggy.$(suffix_y): $(obj)/../Image FORCE
 	$(call if_changed,$(suffix_y))
 
