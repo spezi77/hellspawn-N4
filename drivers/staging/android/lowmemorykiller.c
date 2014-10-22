@@ -84,6 +84,9 @@ static int test_task_flag(struct task_struct *p, int flag)
 	return 0;
 }
 
+static DEFINE_MUTEX(scan_mutex);
+static DEFINE_MUTEX(auto_oom_mutex);
+
 int can_use_cma_pages(gfp_t gfp_mask)
 {
 	int can_use = 0;
@@ -250,7 +253,11 @@ void tune_lmk_param(int *other_free, int *other_file, struct shrink_control *sc)
 	}
 }
 
-static DEFINE_MUTEX(scan_mutex);
+#ifdef CONFIG_ANDROID_LMK_ADJ_RBTREE
+static struct task_struct *pick_next_from_adj_tree(struct task_struct *task);
+static struct task_struct *pick_first_task(void);
+static struct task_struct *pick_last_task(void);
+#endif
 
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
@@ -400,6 +407,176 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	mutex_unlock(&scan_mutex);
 	return rem;
 }
+
+#ifdef CONFIG_ZRAM_FOR_ANDROID
+void could_cswap(void)
+{
+	if((hidden_cgroup_counter <= 0) && (atomic_read(&s_reclaim.need_to_reclaim) != 1))
+		return;
+
+	if (time_before(jiffies, prev_jiffy + minimum_interval_time))
+		return;
+
+	if (atomic_read(&s_reclaim.lmk_running) == 1 || atomic_read(&kswapd_thread_on) == 1)
+		return;
+
+	if (nr_swap_pages < minimum_freeswap_pages)
+		return;
+
+	if (unlikely(s_reclaim.kcompcached == NULL))
+		return;
+
+	if (likely(atomic_read(&s_reclaim.kcompcached_enable) == 0))
+		return;
+
+	if (idle_cpu(task_cpu(s_reclaim.kcompcached)) && this_cpu_loadx(4) == 0) {
+		if ((atomic_read(&s_reclaim.idle_report) == 1) && (hidden_cgroup_counter > 0)) {
+			if(s_reclaim.rtcc_daemon){
+				send_sig(SIGUSR1, s_reclaim.rtcc_daemon, 0);
+				hidden_cgroup_counter -- ;
+				atomic_set(&s_reclaim.idle_report, 0);
+				prev_jiffy = jiffies;
+				return;
+			}
+		}
+
+		if (atomic_read(&s_reclaim.need_to_reclaim) != 1) {
+			atomic_set(&s_reclaim.idle_report, 1);
+			return;
+		}
+
+		if (atomic_read(&s_reclaim.kcompcached_running) == 0) {
+			wake_up_process(s_reclaim.kcompcached);
+			atomic_set(&s_reclaim.kcompcached_running, 1);
+			atomic_set(&s_reclaim.idle_report, 1);
+			prev_jiffy = jiffies;
+		}
+	if (lowmem_auto_oom) {
+		mutex_lock(&auto_oom_mutex);
+		memcpy(lowmem_minfree_screen_on, lowmem_minfree, sizeof(lowmem_minfree));
+		memcpy(lowmem_minfree, lowmem_minfree_screen_off, sizeof(lowmem_minfree_screen_off));
+		mutex_unlock(&auto_oom_mutex);
+	}
+}
+
+inline void enable_soft_reclaim(void)
+{
+	atomic_set(&s_reclaim.kcompcached_enable, 1);
+	if (lowmem_auto_oom) {
+		mutex_lock(&auto_oom_mutex);
+		memcpy(lowmem_minfree, lowmem_minfree_screen_on, sizeof(lowmem_minfree_screen_on));
+		mutex_unlock(&auto_oom_mutex);
+	}
+}
+
+inline void disable_soft_reclaim(void)
+{
+	atomic_set(&s_reclaim.kcompcached_enable, 0);
+}
+
+inline void need_soft_reclaim(void)
+{
+	atomic_set(&s_reclaim.need_to_reclaim, 1);
+}
+
+inline void cancel_soft_reclaim(void)
+{
+	atomic_set(&s_reclaim.need_to_reclaim, 0);
+}
+
+
+int get_soft_reclaim_status(void)
+{
+	int kcompcache_running = atomic_read(&s_reclaim.kcompcached_running);
+	return kcompcache_running;
+}
+
+static int soft_reclaim(void)
+{
+	int nid;
+	int i;
+	unsigned long nr_soft_reclaimed;
+	unsigned long nr_soft_scanned;
+	unsigned long nr_reclaimed = 0;
+
+	for_each_node_state(nid, N_HIGH_MEMORY) {
+		pg_data_t *pgdat = NODE_DATA(nid);
+		for (i = 0; i <= 1; i++) {
+			struct zone *zone = pgdat->node_zones + i;
+			if (!populated_zone(zone))
+				continue;
+			if (zone->all_unreclaimable)
+				continue;
+
+			nr_soft_scanned = 0;
+			nr_soft_reclaimed = mem_cgroup_soft_limit_reclaim(zone,
+						0, GFP_KERNEL,
+						&nr_soft_scanned);
+
+			s_reclaim.nr_last_soft_reclaimed = nr_soft_reclaimed;
+			s_reclaim.nr_last_soft_reclaimed = nr_soft_reclaimed;
+			s_reclaim.nr_last_soft_scanned = nr_soft_scanned;
+			s_reclaim.nr_total_soft_reclaimed += nr_soft_reclaimed;
+			s_reclaim.nr_total_soft_scanned += nr_soft_scanned;
+			nr_reclaimed += nr_soft_reclaimed;
+		}
+	}
+
+	lss_dbg("soft reclaimed %ld pages\n", nr_reclaimed);
+	return nr_reclaimed;
+}
+
+static int do_compcache(void * nothing)
+{
+	int ret;
+	set_freezable();
+
+	for ( ; ; ) {
+		ret = try_to_freeze();
+		if (kthread_should_stop())
+			break;
+
+		if (soft_reclaim() < minimun_reclaim_pages)
+		cancel_soft_reclaim();
+
+		atomic_set(&s_reclaim.kcompcached_running, 0);
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule();
+	}
+
+	return 0;
+}
+static ssize_t rtcc_daemon_store(struct class *class, struct class_attribute *attr,
+			const char *buf, size_t count)
+{
+	struct task_struct *p;
+	pid_t pid;
+	long val = -1;
+	long magic_sign = -1;
+
+	sscanf(buf, "%ld,%ld", &val, &magic_sign);
+
+	if (val < 0 || ((val * val - 1) != magic_sign)) {
+		pr_warning("Invalid rtccd pid\n");
+		goto out;
+	}
+
+	pid = (pid_t)val;
+	for_each_process(p) {
+		if ((pid == p->pid) && strstr(p->comm, RTCC_DAEMON_PROC)) {
+			s_reclaim.rtcc_daemon = p;
+			atomic_set(&s_reclaim.idle_report, 1);
+			goto out;
+		}
+	}
+	pr_warning("No found rtccd at pid %d!\n", pid);
+
+out:
+	return count;
+}
+static CLASS_ATTR(rtcc_daemon, 0200, NULL, rtcc_daemon_store);
+static struct class *kcompcache_class;
+#endif /* CONFIG_ZRAM_FOR_ANDROID */
 
 static struct shrinker lowmem_shrinker = {
 	.shrink = lowmem_shrink,
