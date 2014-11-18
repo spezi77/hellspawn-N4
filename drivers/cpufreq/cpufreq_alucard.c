@@ -50,9 +50,9 @@
 #define CPUS_DOWN_RATE			2
 
 #ifdef CONFIG_MACH_LGE
-#define FREQ_RESPONSIVENESS		1134000
+#define FREQ_RESPONSIVENESS		1512000
 #else
-#define FREQ_RESPONSIVENESS		702000
+#define FREQ_RESPONSIVENESS		1512000
 #endif
 
 /* Pump Inc/Dec for all cores */
