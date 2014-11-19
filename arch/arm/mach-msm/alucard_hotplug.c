@@ -70,7 +70,7 @@ static struct hotplug_tuners {
 } hotplug_tuners_ins = {
 	.hotplug_sampling_rate = 30,
 #ifdef CONFIG_MACH_JF
-	.hotplug_enable = 1,
+	.hotplug_enable = 0,
 #else
 	.hotplug_enable = 0,
 #endif
