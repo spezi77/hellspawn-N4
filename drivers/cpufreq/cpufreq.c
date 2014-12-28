@@ -348,7 +348,9 @@ void cpufreq_notify_transition(struct cpufreq_freqs *freqs, unsigned int state)
 		break;
 	}
 }
+
 EXPORT_SYMBOL_GPL(cpufreq_notify_transition);
+
 /**
  * cpufreq_notify_utilization - notify CPU userspace about CPU utilization
  * change
