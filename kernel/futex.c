@@ -1651,12 +1651,7 @@ retry_private:
 				goto retry;
 			goto out;
 		case -EAGAIN:
-			/*
-			 * Two reasons for this:
-			 * - Owner is exiting and we just wait for the
-			 *   exit to complete.
-			 * - The user space value changed.
-			 */
+			/* The owner was exiting, try again. */
 			free_pi_state(pi_state);
 			pi_state = NULL;
 			double_unlock_hb(hb1, hb2);
