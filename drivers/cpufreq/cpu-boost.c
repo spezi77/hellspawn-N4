@@ -25,6 +25,8 @@
 #include <linux/slab.h>
 #include <linux/input.h>
 #include <linux/time.h>
+#include <linux/fb.h>
+#include <linux/notifier.h>
 
 struct cpu_sync {
 	struct task_struct *thread;
@@ -45,6 +47,8 @@ static struct workqueue_struct *cpu_boost_wq;
 
 static struct work_struct input_boost_work;
 
+static struct notifier_block notif;
+
 static unsigned int boost_ms;
 module_param(boost_ms, uint, 0644);
 
@@ -56,6 +60,18 @@ module_param(input_boost_enabled, uint, 0644);
 
 static unsigned int input_boost_ms = 40;
 module_param(input_boost_ms, uint, 0644);
+
+static unsigned int migration_load_threshold = 30;
+module_param(migration_load_threshold, uint, 0644);
+
+static bool load_based_syncs = 1;
+module_param(load_based_syncs, bool, 0644);
+
+static bool hotplug_boost = 1;
+module_param(hotplug_boost, bool, 0644);
+
+bool wakeup_boost;
+module_param(wakeup_boost, bool, 0644);
 
 static struct delayed_work input_boost_rem;
 static u64 last_input_time;
@@ -424,6 +440,60 @@ static struct input_handler cpuboost_input_handler = {
 	.id_table       = cpuboost_ids,
 };
 
+static int cpuboost_cpu_callback(struct notifier_block *cpu_nb,
+				 unsigned long action, void *hcpu)
+{
+	switch (action & ~CPU_TASKS_FROZEN) {
+	case CPU_UP_PREPARE:
+	case CPU_DEAD:
+	case CPU_UP_CANCELED:
+		break;
+	case CPU_ONLINE:
+		if (!hotplug_boost || !input_boost_enabled ||
+		     work_pending(&input_boost_work))
+			break;
+		pr_debug("Hotplug boost for CPU%d\n", (int)hcpu);
+		queue_work(cpu_boost_wq, &input_boost_work);
+		last_input_time = ktime_to_us(ktime_get());
+		break;
+	default:
+		break;
+	}
+	return NOTIFY_OK;
+}
+
+static struct notifier_block __refdata cpu_nblk = {
+        .notifier_call = cpuboost_cpu_callback,
+};
+
+static int fb_notifier_callback(struct notifier_block *self,
+				unsigned long event, void *data)
+{
+	struct fb_event *evdata = data;
+	int *blank;
+
+	if (evdata && evdata->data && event == FB_EVENT_BLANK) {
+		blank = evdata->data;
+		switch (*blank) {
+			case FB_BLANK_UNBLANK:
+				if (!wakeup_boost || !input_boost_enabled ||
+				     work_pending(&input_boost_work))
+					break;
+				pr_debug("Wakeup boost for display on event.\n");
+				queue_work(cpu_boost_wq, &input_boost_work);
+				last_input_time = ktime_to_us(ktime_get());
+				break;
+			case FB_BLANK_POWERDOWN:
+			case FB_BLANK_HSYNC_SUSPEND:
+			case FB_BLANK_VSYNC_SUSPEND:
+			case FB_BLANK_NORMAL:
+				break;
+		}
+	}
+
+	return 0;
+}
+
 static int cpu_boost_init(void)
 {
 	int cpu, ret;
@@ -452,6 +522,9 @@ static int cpu_boost_init(void)
 					&boost_migration_nb);
 	ret = input_register_handler(&cpuboost_input_handler);
 
-	return 0;
+
+	notif.notifier_call = fb_notifier_callback;
+
+	return ret;
 }
 late_initcall(cpu_boost_init);
