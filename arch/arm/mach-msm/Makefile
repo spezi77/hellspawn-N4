@@ -400,3 +400,6 @@ obj-$(CONFIG_HAS_MACH_MEMUTILS) += memutils/
 ifdef CONFIG_MSM_HOTPLUG
 obj-$(CONFIG_MSM_HOTPLUG) += msm_hotplug.o
 endif
+ifdef CONFIG_BRICKED_HOTPLUG
+obj-$(CONFIG_BRICKED_HOTPLUG) += bricked_hotplug.o
+endif
