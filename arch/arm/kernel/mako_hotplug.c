@@ -27,7 +27,6 @@
 #include <linux/delay.h>
 #include <linux/input.h>
 #include <linux/jiffies.h>
-#include <linux/earlysuspend.h>
 
 #define MAKO_HOTPLUG "mako_hotplug"
 
@@ -93,7 +92,6 @@ struct hotplug_tunables {
 
 static struct workqueue_struct *wq;
 static struct delayed_work decide_hotplug;
-static struct work_struct suspend, resume;
 
 static inline void cpus_online_work(void)
 {
@@ -244,37 +242,6 @@ reschedule:
 	queue_delayed_work_on(0, wq, &decide_hotplug,
 		msecs_to_jiffies(t->timer * HZ));
 }
-
-static void mako_hotplug_suspend(struct work_struct *work)
-{
-	cpus_offline_work();
-
-	pr_info("%s: suspend\n", MAKO_HOTPLUG);
-}
-
-static void __ref mako_hotplug_resume(struct work_struct *work)
-{
-	cpus_online_work();
-
-	pr_info("%s: resume\n", MAKO_HOTPLUG);
-}
-
-static void mako_hotplug_early_suspend(struct early_suspend *handler)
-{
-	queue_work_on(0, wq, &suspend);
-}
-
-static void mako_hotplug_late_resume(struct early_suspend *handler)
-{
-	queue_work_on(0, wq, &resume);
-}
-
-static struct early_suspend early_suspend =
-{
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB,
-	.suspend = mako_hotplug_early_suspend,
-	.resume = mako_hotplug_late_resume,
-};
 
 /*
  * Sysfs get/set entries start
@@ -491,13 +458,9 @@ static int __devinit mako_hotplug_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	INIT_WORK(&resume, mako_hotplug_resume);
-	INIT_WORK(&suspend, mako_hotplug_suspend);
 	INIT_DELAYED_WORK(&decide_hotplug, decide_hotplug_func);
 
 	queue_delayed_work_on(0, wq, &decide_hotplug, HZ * 30);
-
-	register_early_suspend(&early_suspend);
 err:
 	return ret;
 }
