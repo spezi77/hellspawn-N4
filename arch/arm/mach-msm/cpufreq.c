@@ -55,24 +55,6 @@ struct cpu_freq {
 
 static DEFINE_PER_CPU(struct cpu_freq, cpu_freq_info);
 
-#ifdef CONFIG_MSM_SLEEPER
-/**maxscroff**/
-static int __init cpufreq_read_arg_maxscroff(char *max_so)
-{
-	if (strcmp(max_so, "0") == 0) {
-		maxscroff = 0;
-	} else if (strcmp(max_so, "1") == 0) {
-		maxscroff = 1;
-	} else {
-		maxscroff = 0;
-	}
-	return 1;
-}
-
-__setup("max_so=", cpufreq_read_arg_maxscroff);
-/**end maxscroff**/
-#endif
-
 static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 {
 	int ret = 0;
@@ -405,7 +387,8 @@ struct freq_attr msm_cpufreq_attr_max_screen_off = {
 static struct freq_attr *msm_freq_attr[] = {
 	&cpufreq_freq_attr_scaling_available_freqs,
 #ifdef CONFIG_MSM_SLEEPER
-	&msm_cpufreq_attr_max_screen_off_khz, 
+	&msm_cpufreq_attr_max_screen_off_khz,
+ 	&msm_cpufreq_attr_max_screen_off,
 #endif
 	NULL,
 };
