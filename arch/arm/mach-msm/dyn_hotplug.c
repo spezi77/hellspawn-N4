@@ -113,20 +113,38 @@ out:
 	hp_data->up_timer = 0;
 }
 
-/* Iterate through online CPUs and bring online the first one */
+/* Iterate through online CPUs and take offline the first one */
 static inline void down_one(void)
 {
 	unsigned int cpu;
 	unsigned int l_cpu = 0;
 	unsigned int l_freq = ~0;
+	unsigned int p_cpu = 0;
+	unsigned int p_thres = 0;
+	bool all_equal = false;
 
 	/* Min online CPUs, return */
 	if (num_online_cpus() == hp_data->min_online)
 		goto out;
 
 	get_online_cpus();
+	for_each_online_cpu(cpu) {
+		struct cpufreq_policy *policy;
+		unsigned int thres;
 
-	for_each_online_cpu(cpu)
+		policy = cpufreq_cpu_get(cpu);
+		thres = policy->util_thres;
+		cpufreq_cpu_put(policy);
+
+		if (!cpu || thres == p_thres) {
+			p_thres = thres;
+			p_cpu = cpu;
+			all_equal = true;
+		} else if (thres > p_thres) {
+			p_thres = thres;
+			p_cpu = cpu;
+			all_equal = false;
+		}
 		if (cpu) {
 			unsigned int cur = cpufreq_quick_get(cpu);
 
@@ -135,9 +153,13 @@ static inline void down_one(void)
 				l_cpu = cpu;
 			}
 		}
+	}
 	put_online_cpus();
 
-	cpu_down(l_cpu);
+	if (all_equal)
+		cpu_down(l_cpu);
+	else
+		cpu_down(p_cpu);
 out:
 	hp_data->down_timer = 0;
 	hp_data->up_timer = 0;
