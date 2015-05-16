@@ -38,6 +38,9 @@ uint32_t maxscroff_freq = 1026000;
 uint32_t maxscroff = 0;
 #endif
 
+/* ex max freq */
+uint32_t ex_max_freq;
+
 struct cpufreq_suspend_t {
 	struct mutex suspend_mutex;
 	int device_suspended;
@@ -313,7 +316,64 @@ static int msm_cpufreq_resume(struct cpufreq_policy *policy)
 }
 
 #ifdef CONFIG_MSM_SLEEPER
+/** max freq interface **/
+
+static ssize_t show_ex_max_freq(struct cpufreq_policy *policy, char *buf)
+{
+	if (!ex_max_freq)
+		ex_max_freq = policy->max;
+
+	return sprintf(buf, "%u\n", ex_max_freq);
+}
+
+static ssize_t store_ex_max_freq(struct cpufreq_policy *policy,
+		const char *buf, size_t count)
+{
+	unsigned int freq = 0;
+	int ret, cpu;
+	int index;
+	struct cpufreq_frequency_table *freq_table = cpufreq_frequency_get_table(policy->cpu);
+
+	if (!freq_table)
+		return -EINVAL;
+
+	ret = sscanf(buf, "%u", &freq);
+	if (ret != 1)
+		return -EINVAL;
+
+	mutex_lock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
+
+	ret = cpufreq_frequency_table_target(policy, freq_table, freq,
+			CPUFREQ_RELATION_H, &index);
+	if (ret)
+		goto out;
+
+	ex_max_freq = freq_table[index].frequency;
+
+	for_each_possible_cpu(cpu) {
+		msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, ex_max_freq);
+	}
+	cpufreq_update_policy(cpu);
+
+	ret = count;
+
+out:
+	mutex_unlock(&per_cpu(cpufreq_suspend, policy->cpu).suspend_mutex);
+	return ret;
+}
+
+struct freq_attr msm_cpufreq_attr_ex_max_freq = {
+	.attr = { .name = "ex_max_freq",
+		.mode = 0666,
+	},
+	.show = show_ex_max_freq,
+	.store = store_ex_max_freq,
+};
+/** end max freq interface **/
+
+
 /** maxscreen off sysfs interface **/
+
 static ssize_t show_max_screen_off_khz(struct cpufreq_policy *policy, char *buf)
 {
 	return sprintf(buf, "%u\n", maxscroff_freq);
