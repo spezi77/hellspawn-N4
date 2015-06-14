@@ -73,6 +73,112 @@ static struct devfreq *find_device_devfreq(struct device *dev)
 }
 
 /**
+ * devfreq_set_freq_limits() - Set min and max frequency from freq_table
+ * @devfreq:	the devfreq instance
+ */
+static void devfreq_set_freq_limits(struct devfreq *devfreq)
+{
+	int idx;
+	unsigned long min = ~0, max = 0;
+
+	if (!devfreq->profile->freq_table)
+		return;
+
+	for (idx = 0; idx < devfreq->profile->max_state; idx++) {
+		if (min > devfreq->profile->freq_table[idx])
+			min = devfreq->profile->freq_table[idx];
+		if (max < devfreq->profile->freq_table[idx])
+			max = devfreq->profile->freq_table[idx];
+	}
+
+	devfreq->min_freq = min;
+	devfreq->max_freq = max;
+}
+
+/**
+ * devfreq_get_freq_level() - Lookup freq_table for the frequency
+ * @devfreq:	the devfreq instance
+ * @freq:	the target frequency
+ */
+int devfreq_get_freq_level(struct devfreq *devfreq, unsigned long freq)
+{
+	int lev;
+
+	for (lev = 0; lev < devfreq->profile->max_state; lev++)
+		if (freq == devfreq->profile->freq_table[lev])
+			return lev;
+
+	return -EINVAL;
+}
+EXPORT_SYMBOL(devfreq_get_freq_level);
+
+/**
+ * devfreq_update_status() - Update statistics of devfreq behavior
+ * @devfreq:	the devfreq instance
+ * @freq:	the update target frequency
+ */
+static int devfreq_update_status(struct devfreq *devfreq, unsigned long freq)
+{
+	int lev, prev_lev, ret = 0;
+	unsigned long cur_time;
+
+	cur_time = jiffies;
+
+	prev_lev = devfreq_get_freq_level(devfreq, devfreq->previous_freq);
+	if (prev_lev < 0) {
+		ret = prev_lev;
+		goto out;
+	}
+
+	devfreq->time_in_state[prev_lev] +=
+			 cur_time - devfreq->last_stat_updated;
+
+	lev = devfreq_get_freq_level(devfreq, freq);
+	if (lev < 0) {
+		ret = lev;
+		goto out;
+	}
+
+	if (lev != prev_lev) {
+		devfreq->trans_table[(prev_lev *
+				devfreq->profile->max_state) + lev]++;
+		devfreq->total_trans++;
+	}
+
+out:
+	devfreq->last_stat_updated = cur_time;
+	return ret;
+}
+
+/**
+ * find_devfreq_governor() - find devfreq governor from name
+ * @name:	name of the governor
+ *
+ * Search the list of devfreq governors and return the matched
+ * governor's pointer. devfreq_list_lock should be held by the caller.
+ */
+static struct devfreq_governor *find_devfreq_governor(const char *name)
+{
+	struct devfreq_governor *tmp_governor;
+
+	if (unlikely(IS_ERR_OR_NULL(name))) {
+		pr_err("DEVFREQ: %s: Invalid parameters\n", __func__);
+		return ERR_PTR(-EINVAL);
+	}
+	WARN(!mutex_is_locked(&devfreq_list_lock),
+	     "devfreq_list_lock must be locked.");
+
+	list_for_each_entry(tmp_governor, &devfreq_governor_list, node) {
+		if (!strncmp(tmp_governor->name, name, DEVFREQ_NAME_LEN))
+			return tmp_governor;
+	}
+
+	return ERR_PTR(-ENODEV);
+}
+
+/* Load monitoring helper functions for governors use */
+
+/**
  * update_devfreq() - Reevaluate the device and configure frequency.
  * @devfreq:	the devfreq instance.
  *
