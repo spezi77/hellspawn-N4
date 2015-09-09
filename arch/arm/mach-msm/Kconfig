@@ -1630,6 +1630,12 @@ config USERSPACE_VOLTAGE_CONTROL
 	help
 	  Userspace Voltage Control
 
+config MSM_SLEEPER
+	bool "Limit max frequency while screen is off"
+	default n
+	help
+	  Limit max frequency while screen is off
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n
