@@ -1616,6 +1616,12 @@ config MSM_CPU_FREQ_MIN
 
 endif # CPU_FREQ_MSM
 
+config MSM_SLEEPER
+	bool "Limit max frequency while screen is off"
+	default n
+	help
+	  Limit max frequency while screen is off
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n
