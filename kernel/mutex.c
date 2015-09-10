@@ -94,6 +94,65 @@ void __sched mutex_lock(struct mutex *lock)
 EXPORT_SYMBOL(mutex_lock);
 #endif
 
+#ifdef CONFIG_MUTEX_SPIN_ON_OWNER
+/*
+ * In order to avoid a stampede of mutex spinners from acquiring the mutex
+ * more or less simultaneously, the spinners need to acquire a MCS lock
+ * first before spinning on the owner field.
+ *
+ * We don't inline mspin_lock() so that perf can correctly account for the
+ * time spent in this lock function.
+ */
+typedef struct mspin_node {
+	struct mspin_node *next;
+	int		   locked;	/* 1 if lock acquired */
+} mspin_node_t;
+
+typedef mspin_node_t	*mspin_lock_t;
+
+#define	MLOCK(mutex)	((mspin_lock_t *)&((mutex)->spin_mlock))
+
+static noinline void mspin_lock(mspin_lock_t *lock,  mspin_node_t *node)
+{
+	mspin_node_t *prev;
+
+	/* Init node */
+	node->locked = 0;
+	node->next   = NULL;
+
+	prev = xchg(lock, node);
+	if (likely(prev == NULL)) {
+		/* Lock acquired */
+		node->locked = 1;
+		return;
+	}
+	ACCESS_ONCE(prev->next) = node;
+	smp_wmb();
+	/* Wait until the lock holder passes the lock down */
+	while (!cpu_relaxed_read(&(node->locked)))
+		cpu_read_relax();
+}
+
+static void mspin_unlock(mspin_lock_t *lock,  mspin_node_t *node)
+{
+	mspin_node_t *next = ACCESS_ONCE(node->next);
+
+	if (likely(!next)) {
+		/*
+		 * Release the lock by setting it to NULL
+		 */
+		if (cmpxchg(lock, node, NULL) == node)
+			return;
+		/* Wait until the next pointer is set */
+		while (!(next = cpu_relaxed_read_long(&(node->next))))
+			cpu_read_relax();
+	}
+	barrier();
+	ACCESS_ONCE(next->locked) = 1;
+	smp_wmb();
+}
+#endif
+
 static __used noinline void __sched __mutex_unlock_slowpath(atomic_t *lock_count);
 
 /**
