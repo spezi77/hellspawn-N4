@@ -409,3 +409,6 @@ endif
 ifdef CONFIG_ALUCARD_HOTPLUG
 obj-$(CONFIG_ALUCARD_HOTPLUG) += alucard_hotplug.o
 endif
+ifdef CONFIG_DYN_HOTPLUG
+obj-$(CONFIG_DYN_HOTPLUG) += dyn_hotplug.o
+endif
