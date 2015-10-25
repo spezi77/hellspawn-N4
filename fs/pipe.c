@@ -403,10 +403,9 @@ pipe_read(struct kiocb *iocb, const struct iovec *_iov,
 
 			atomic = !iov_fault_in_pages_write(iov, chars);
 			remaining = chars;
-			offset = buf->offset;
 redo:
 			addr = ops->map(pipe, buf, atomic);
-			error = pipe_iov_copy_to_user(iov, addr, &offset,
+			error = pipe_iov_copy_to_user(iov, addr, &buf->offset,
 						      &remaining, atomic);
 			ops->unmap(pipe, buf, addr);
 			if (unlikely(error)) {
@@ -422,7 +421,6 @@ redo:
 				break;
 			}
 			ret += chars;
-			buf->offset += chars;
 			buf->len -= chars;
 
 			/* Was it a packet buffer? Clean up and exit */
