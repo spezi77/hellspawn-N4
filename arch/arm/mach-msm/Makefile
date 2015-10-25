@@ -403,3 +403,6 @@ endif
 ifdef CONFIG_BRICKED_HOTPLUG
 obj-$(CONFIG_BRICKED_HOTPLUG) += bricked_hotplug.o
 endif
+ifdef CONFIG_BLU_PLUG
+obj-$(CONFIG_BLU_PLUG) += blu_plug.o
+endif
