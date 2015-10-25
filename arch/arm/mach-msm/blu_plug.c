@@ -34,7 +34,7 @@
 #define MAX_ONLINE		(4)
 #define DEF_DOWN_TIMER_CNT	(6)	/* 3 secs */
 #define DEF_UP_TIMER_CNT	(2)	/* 1 sec */
-#define MAX_CORES_SCREENOFF (2)
+#define MAX_CORES_SCREENOFF (1)
 #define MAX_FREQ_SCREENOFF (1190400)
 #define MAX_FREQ_PLUG (2649600)
 #define DEF_PLUG_THRESHOLD 0
