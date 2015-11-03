@@ -30,8 +30,7 @@
 
 #define MAKO_HOTPLUG "mako_hotplug"
 
-#define DRIVER_ENABLED 1
-
+#define DEFAULT_HOTPLUG_ENABLED 0
 #define DEFAULT_LOAD_THRESHOLD 80
 #define DEFAULT_HIGH_LOAD_COUNTER 10
 #define DEFAULT_MAX_LOAD_COUNTER 20
@@ -212,6 +211,9 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 	unsigned int cpu;
 	unsigned int online_cpus = num_online_cpus();
 
+	if (!t->enabled)
+		goto reschedule;
+
 	/*
 	 * reschedule early when the user doesn't want more than 2 cores online
 	 */
@@ -244,9 +246,8 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 			cpu_smash(cur_load);
 	}
 
-	if (t->enabled)
-		queue_delayed_work(wq, &decide_hotplug,
-			msecs_to_jiffies(t->timer * HZ));
+	queue_delayed_work(wq, &decide_hotplug,
+		msecs_to_jiffies(t->timer * HZ));
 
 	return;
 
@@ -257,13 +258,36 @@ reschedule:
 	 * we don't need to run this work every 100ms, but rather just
 	 * once every 2 seconds
 	 */
-	if (t->enabled)
-		queue_delayed_work(wq, &decide_hotplug, HZ * 2);
+	queue_delayed_work(wq, &decide_hotplug, HZ * 2);
 }
 
 /*
  * Sysfs get/set entries start
  */
+
+static ssize_t make_hotplug_enabled_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct hotplug_tunables *t = &tunables;
+
+	return snprintf(buf, PAGE_SIZE, "%u\n", t->enabled);
+}
+
+static ssize_t make_hotplug_enabled_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct hotplug_tunables *t = &tunables;
+	int ret;
+	unsigned long new_val;
+
+	ret = kstrtoul(buf, 0, &new_val);
+	if (ret < 0)
+		return ret;
+
+	t->enabled = new_val > 1 ? 1 : new_val;
+
+	return size;
+}
 
 static ssize_t load_threshold_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -409,39 +433,8 @@ static ssize_t timer_store(struct device *dev, struct device_attribute *attr,
 	return size;
 }
 
-static ssize_t enabled_show(struct device *dev, struct device_attribute *attr,
-		char *buf)
-{
-	struct hotplug_tunables *t = &tunables;
-
-	return snprintf(buf, 10, "%u\n", t->enabled);
-}
-
-static ssize_t enabled_store(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t size)
-{
-	struct hotplug_tunables *t = &tunables;
-	int ret;
-	unsigned long new_val;
-
-	ret = kstrtoul(buf, 0, &new_val);
-	if (ret < 0)
-		return ret;
-
-	/* Handle disabled->enabled and enabled->disabled change */
-	if (!t->enabled && new_val) {
-		/* Queue hotplug work 1s after enabling */
-		queue_delayed_work(wq, &decide_hotplug, HZ);
-	} else if (t->enabled && !new_val) {
-		/* Flush existing hotplug work when disabling */
-		flush_workqueue(wq);
-		cancel_delayed_work_sync(&decide_hotplug);
-	}
-	t->enabled = new_val > 1 ? 1 : 0;
-
-	return size;
-}
-
+static DEVICE_ATTR(enabled, 0664, make_hotplug_enabled_show,
+		make_hotplug_enabled_store);
 static DEVICE_ATTR(load_threshold, 0664, load_threshold_show,
 		load_threshold_store);
 static DEVICE_ATTR(high_load_counter, 0664, high_load_counter_show,
@@ -453,16 +446,15 @@ static DEVICE_ATTR(cpufreq_unplug_limit, 0664, cpufreq_unplug_limit_show,
 static DEVICE_ATTR(min_time_cpu_online, 0664, min_time_cpu_online_show,
 		min_time_cpu_online_store);
 static DEVICE_ATTR(timer, 0664, timer_show, timer_store);
-static DEVICE_ATTR(enabled, 0664, enabled_show, enabled_store);
 
 static struct attribute *mako_hotplug_control_attributes[] = {
+	&dev_attr_enabled.attr,
 	&dev_attr_load_threshold.attr,
 	&dev_attr_high_load_counter.attr,
 	&dev_attr_max_load_counter.attr,
 	&dev_attr_cpufreq_unplug_limit.attr,
 	&dev_attr_min_time_cpu_online.attr,
 	&dev_attr_timer.attr,
-	&dev_attr_enabled.attr,
 	NULL
 };
 
@@ -493,13 +485,13 @@ static int __devinit mako_hotplug_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	t->enabled = DEFAULT_HOTPLUG_ENABLED;
 	t->load_threshold = DEFAULT_LOAD_THRESHOLD;
 	t->high_load_counter = DEFAULT_HIGH_LOAD_COUNTER;
 	t->max_load_counter = DEFAULT_MAX_LOAD_COUNTER;
 	t->cpufreq_unplug_limit = DEFAULT_CPUFREQ_UNPLUG_LIMIT;
 	t->min_time_cpu_online = DEFAULT_MIN_TIME_CPU_ONLINE;
 	t->timer = DEFAULT_TIMER;
-	t->enabled = DRIVER_ENABLED;
 
 	ret = misc_register(&mako_hotplug_control_device);
 	if (ret) {
@@ -516,8 +508,7 @@ static int __devinit mako_hotplug_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&decide_hotplug, decide_hotplug_func);
 
-	if (t->enabled)
-		queue_delayed_work(wq, &decide_hotplug, HZ * 30);
+	queue_delayed_work(wq, &decide_hotplug, HZ * 30);
 err:
 	return ret;
 }
