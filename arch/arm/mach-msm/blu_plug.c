@@ -35,8 +35,8 @@
 #define DEF_DOWN_TIMER_CNT	(6)	/* 3 secs */
 #define DEF_UP_TIMER_CNT	(2)	/* 1 sec */
 #define MAX_CORES_SCREENOFF     (1)
-#define MAX_FREQ_SCREENOFF      (960000)
-#define MAX_FREQ_PLUG           (3091200)
+#define MAX_FREQ_SCREENOFF      (0)
+#define MAX_FREQ_PLUG           (0)
 #define DEF_PLUG_THRESHOLD      (70)
 #define BLU_PLUG_ENABLED	(0)
 
@@ -387,7 +387,7 @@ static int set_max_freq_screenoff(const char *val, const struct kernel_param *kp
 	ret = kstrtouint(val, 10, &i);
 	if (ret)
 		return -EINVAL;
-	if (i < 300000 || i > 2649600)
+	if (i < 35800 || i > 3091200)
 		return -EINVAL;
 
 	ret = param_set_uint(val, kp);
