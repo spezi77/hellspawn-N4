@@ -374,6 +374,8 @@ KBUILD_CFLAGS   := -Wall -DNDEBUG -Wundef -Wstrict-prototypes -Wno-trigraphs \
                    -fno-strict-aliasing -fno-common \
                    -Werror-implicit-function-declaration \
                    -Wno-format-security \
+                   -Wno-shift-overflow -Wno-tautological-compare \
+                   -Wno-unused-const-variable \
 		   -Wno-maybe-uninitialized \
                    -Wno-sizeof-pointer-memaccess \
                    -fno-delete-null-pointer-checks \
