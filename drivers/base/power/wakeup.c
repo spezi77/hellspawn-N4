@@ -17,6 +17,14 @@
 #include <linux/moduleparam.h>
 #include <linux/types.h>
 #include <trace/events/power.h>
+#include <linux/moduleparam.h>
+
+static bool enable_wlan_rx_wake_ws = true;
+module_param(enable_wlan_rx_wake_ws, bool, 0644);
+static bool enable_wlan_ctrl_wake_ws = true;
+module_param(enable_wlan_ctrl_wake_ws, bool, 0644);
+static bool enable_wlan_wake_ws = true;
+module_param(enable_wlan_wake_ws, bool, 0644);
 
 #include "power.h"
 
@@ -413,6 +421,15 @@ static void wakeup_source_activate(struct wakeup_source *ws)
 		pr_info("wakeup source msm_hsic_host activate skipped\n");
 		return;
 	}
+
+	if (!enable_wlan_rx_wake_ws && !strcmp(ws->name, "wlan_rx_wake"))
+                return;
+
+	if (!enable_wlan_ctrl_wake_ws && !strcmp(ws->name, "wlan_ctrl_wake"))
+                return;
+
+	if (!enable_wlan_wake_ws && !strcmp(ws->name, "wlan_wake"))
+                return;
 
 	ws->active = true;
 	ws->active_count++;
