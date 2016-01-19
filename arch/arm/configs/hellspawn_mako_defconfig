@@ -55,7 +55,6 @@ CONFIG_KERNEL_XZ=y
 # CONFIG_KERNEL_LZ4 is not set
 CONFIG_DEFAULT_HOSTNAME="(none)"
 # CONFIG_SWAP is not set
-# CONFIG_SYSVIPC is not set
 # CONFIG_POSIX_MQUEUE is not set
 # CONFIG_BSD_PROCESS_ACCT is not set
 # CONFIG_FHANDLE is not set
