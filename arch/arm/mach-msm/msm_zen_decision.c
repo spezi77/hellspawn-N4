@@ -46,7 +46,7 @@ unsigned int wake_wait_time = 1000;
  *
  * Setting to 0 will do CPU_UP work regardless of battery level.
  */
-unsigned int bat_threshold_ignore = 15;
+unsigned int bat_threshold_ignore = 0;
 
 /* FB Notifier */
 static struct notifier_block fb_notifier;
