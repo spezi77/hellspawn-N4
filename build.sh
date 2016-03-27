@@ -9,13 +9,13 @@ restore='\033[0m'
 clear
 
 # Resources
-THREAD="-j9"
+THREAD="-j6"
 KERNEL="zImage"
-DEFCONFIG="hells_defconfig"
+DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
-BASE_HC_VER="hC"
-VER="-b88-M"
+BASE_HC_VER="hellspawn-N4-mm-6.0"
+VER="-r00"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
@@ -25,10 +25,10 @@ export SUBARCH=arm
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR="${HOME}/Android/Kernel/hC-N4-anykernel"
-ZIP_MOVE="${HOME}/Android/Kernel/hC-releases/N4"
-ZIMAGE_DIR="${HOME}/Android/Kernel/hells-Core-N4/arch/arm/boot"
-DB_FOLDER="${HOME}/Dropbox/Kernel-Betas/N4"
+REPACK_DIR="${HOME}/android/Kernel/AnyKernel"
+ZIP_MOVE="${HOME}/android/Kernel/Releases/hellspawn-N4"
+ZIMAGE_DIR="${HOME}/android/Kernel/hellspawn-N4/arch/arm/boot"
+DB_FOLDER="${HOME}/Dropbox/Kernel-Betas/hellspawn-N4"
 
 # Functions
 function clean_all {
@@ -44,7 +44,7 @@ function make_kernel {
 
 function make_zip {
 		cd $REPACK_DIR
-		zip -9 -r `echo $HC_VER`.zip .
+		zip -9 -r --exclude='*.git*' `echo $HC_VER`.zip .
 		mv  `echo $HC_VER`.zip $ZIP_MOVE
 		cd $KERNEL_DIR
 }
@@ -58,7 +58,7 @@ function copy_dropbox {
 DATE_START=$(date +"%s")
 
 echo -e "${green}"
-echo "hC Kernel Creation Script:"
+echo "hellspawn-N4 Kernel Creation Script:"
 echo
 
 echo "---------------"
@@ -69,7 +69,7 @@ echo -e "${red}"; echo -e "${blink_red}"; echo "$HC_VER"; echo -e "${restore}";
 
 echo -e "${green}"
 echo "-----------------"
-echo "Making hC Kernel:"
+echo "Making Kernel:"
 echo "-----------------"
 echo -e "${restore}"
 
