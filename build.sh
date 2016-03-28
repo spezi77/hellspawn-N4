@@ -19,7 +19,6 @@ VER="-r01"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
-export LOCALVERSION=-`echo $HC_VER`
 export ARCH=arm
 export SUBARCH=arm
 
