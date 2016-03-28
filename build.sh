@@ -15,7 +15,7 @@ DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
 BASE_HC_VER="hellspawn-N4-mm-6.0"
-VER="-r00"
+VER="-r01"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
@@ -25,21 +25,21 @@ export SUBARCH=arm
 
 # Paths
 KERNEL_DIR=`pwd`
-REPACK_DIR="${HOME}/android/Kernel/AnyKernel"
+REPACK_DIR="${HOME}/android/Kernel/anykernel_msm"
 ZIP_MOVE="${HOME}/android/Kernel/Releases/hellspawn-N4"
 ZIMAGE_DIR="${HOME}/android/Kernel/hellspawn-N4/arch/arm/boot"
 DB_FOLDER="${HOME}/Dropbox/Kernel-Betas/hellspawn-N4"
 
 # Functions
 function clean_all {
-		rm -rf $REPACK_DIR/kernel/zImage
+		rm -rf $REPACK_DIR/tmp/anykernel/zImage
 		make clean && make mrproper
 }
 
 function make_kernel {
 		make $DEFCONFIG
 		make $THREAD
-		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/kernel
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
 function make_zip {
