@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, Francisco Franco <franciscofranco.1990@gmail.com>.
+ * Copyright (c) 2013-2015, Francisco Franco <franciscofranco.1990@gmail.com>.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -521,7 +521,7 @@ static struct platform_device mako_hotplug_device = {
 static int mako_hotplug_remove(struct platform_device *pdev)
 {
 	destroy_workqueue(wq);
-	unregister_early_suspend(&early_suspend);
+
 	return 0;
 }
 
