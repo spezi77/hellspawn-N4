@@ -131,7 +131,6 @@ struct cpufreq_policy {
 	 */
 	struct rw_semaphore	rwsem;
 
-	unsigned int    util;
 	unsigned int	util_thres; /* Threshold to increase utilization*/
 	unsigned int	load_at_max;  /* CPU utilization at max frequency */
 };
