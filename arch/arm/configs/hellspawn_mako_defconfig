@@ -741,6 +741,12 @@ CONFIG_CPU_FREQ_MSM=y
 CONFIG_CPU_BOOST=y
 
 #
+# CPU Hotplug drivers
+#
+CONFIG_MSM_HOTPLUG=y
+CONFIG_BRICKED_HOTPLUG=y
+
+#
 # Floating point emulation
 #
 
