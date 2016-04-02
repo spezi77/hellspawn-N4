@@ -1222,7 +1222,7 @@ if (dbs_tuners_ins.gboost) {
 		}
 	}
 
-	if (g_count < 100 && graphics_boost < 2) {
+	if (g_count < 100 && graphics_boost == 0) {
 	        ++g_count;
 	} else if (g_count > 1) {
 	        --g_count;
