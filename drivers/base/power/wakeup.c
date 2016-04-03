@@ -17,6 +17,8 @@
 #include <linux/types.h>
 #include <trace/events/power.h>
 #include <linux/moduleparam.h>
+#include <linux/types.h>
+#include <trace/events/power.h>
 
 static bool enable_wlan_rx_wake_ws = true;
 module_param(enable_wlan_rx_wake_ws, bool, 0644);

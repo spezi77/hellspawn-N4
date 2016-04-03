@@ -362,6 +362,10 @@ config DEDUCE_WAKEUP_REASONS
 	bool
 	default n
 
+config DEDUCE_WAKEUP_REASONS
+	bool
+	default n
+
 config PARTIALRESUME
 	bool "Partial-resume framework"
 	select DEDUCE_WAKEUP_REASONS
