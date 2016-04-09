@@ -39,6 +39,7 @@
 #include <linux/hrtimer.h>
 #include <linux/delay.h>
 #include <linux/export.h>
+#include <linux/rq_stats.h>
 #ifdef CONFIG_MSM_MPDEC_INPUTBOOST_CPUMIN
 #include <linux/input.h>
 #include <linux/slab.h>
@@ -189,7 +190,23 @@ static void mpdec_cpu_down(int cpu) {
 	}
 }
 EXPORT_SYMBOL_GPL(mpdec_cpu_down);
+#ifdef CONFIG_MSM_MPDEC
+unsigned int get_rq_info(void)
+{
+	unsigned long flags = 0;
+        unsigned int rq = 0;
 
+        spin_lock_irqsave(&rq_lock, flags);
+
+        rq = rq_info.rq_avg;
+        rq_info.rq_avg = 0;
+
+        spin_unlock_irqrestore(&rq_lock, flags);
+
+        return rq;
+}
+EXPORT_SYMBOL(get_rq_info);
+#endif
 static int mp_decision(void) {
 	static bool first_call = true;
 	int new_state = MSM_MPDEC_IDLE;
