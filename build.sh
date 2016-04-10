@@ -15,7 +15,7 @@ DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
 BASE_HC_VER="hellspawn-N4-mm-6.0"
-VER="-r05"
+VER="-r06"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
@@ -36,6 +36,43 @@ function clean_all {
 }
 
 function make_kernel {
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_cm_kernel_GCC49 {
+		HC_VER="$BASE_HC_VER$VER-cm-UBER-TC4.9"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-4.9/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_cm_kernel_GCC53 {
+		HC_VER="$BASE_HC_VER$VER-cm-UBER-TC5.3"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function git_revert_cm_commits {
+		git revert 091183726158125d1f72f82c7ea8326dda08a86a --no-edit
+		git revert feda27448d5dad766dd06066f9f318f94a938ac3 --no-edit
+}
+
+function make_aosp_kernel_GCC49 {
+		HC_VER="$BASE_HC_VER$VER-aosp-UBER-TC4.9"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-4.9/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_aosp_kernel_GCC53 {
+		HC_VER="$BASE_HC_VER$VER-aosp-UBER-TC5.3"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -72,10 +109,14 @@ echo "Making Kernel:"
 echo "-----------------"
 echo -e "${restore}"
 
-while read -p "Please choose your option: [1]clean-build / [2]dirty-build / [3]abort " cchoice
+echo "----------------------------"
+echo "Please choose your option:"
+echo "----------------------------"
+while read -p " [1]clean-build / [2]dirty-build / [3]batch-build / [4]abort " cchoice
 do
 case "$cchoice" in
 	1 )
+		HC_VER="$BASE_HC_VER$VER"
 		echo -e "${green}"
 		echo
 		echo "[..........Cleaning up..........]"
@@ -103,6 +144,7 @@ case "$cchoice" in
 		break
 		;;
 	2 )
+		HC_VER="$BASE_HC_VER$VER"
 		echo -e "${green}"
 		echo
 		echo "[....Building `echo $HC_VER`....]"
@@ -124,6 +166,114 @@ case "$cchoice" in
 		break
 		;;
 	3 )
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		echo "[....Building `echo $HC_VER-cm-UBER-TC4.9`....]"
+		echo
+		echo -e "${restore}"
+		make_cm_kernel_GCC49
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		echo "[....Building `echo $HC_VER-cm-UBER-TC5.3`....]"
+		echo
+		echo -e "${restore}"
+		make_cm_kernel_GCC53
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		echo "[....Building `echo $HC_VER-aosp-UBER-TC4.9`....]"
+		echo
+		echo -e "${restore}"
+		git_revert_cm_commits
+		make_aosp_kernel_GCC49
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		echo "[....Building `echo $HC_VER-aosp-UBER-TC5.3`....]"
+		echo
+		echo -e "${restore}"
+		make_aosp_kernel_GCC53
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		break
+		;;
+	4 )
 		break
 		;;
 	* )
