@@ -58,8 +58,17 @@ function make_cm_kernel_GCC53 {
 }
 
 function git_revert_cm_commits {
+		branch_name=$(git symbolic-ref -q HEAD)
+		branch_name=${branch_name##refs/heads/}
+		branch_name=${branch_name:-HEAD}
+		git checkout -b temp-for-making-aosp-builds
 		git revert 091183726158125d1f72f82c7ea8326dda08a86a --no-edit
 		git revert feda27448d5dad766dd06066f9f318f94a938ac3 --no-edit
+}
+
+function git_switch_to_previous_branch {
+		git checkout $branch_name
+		git branch -D temp-for-making-aosp-builds
 }
 
 function make_aosp_kernel_GCC49 {
@@ -270,6 +279,7 @@ case "$cchoice" in
 		echo
 		echo -e "${restore}"
 		copy_dropbox
+		git_switch_to_previous_branch
 
 		break
 		;;
