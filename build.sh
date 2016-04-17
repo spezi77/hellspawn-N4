@@ -42,14 +42,14 @@ function make_kernel {
 }
 
 function make_bs_kernel {
-		HC_VER="$BASE_HC_VER$VER-BS-UBER-TC5.3"
+		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-7.0"
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
 function make_cm_kernel {
-		HC_VER="$BASE_HC_VER$VER-CM-UBER-TC5.3"
+		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-7.0"
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -83,7 +83,7 @@ function git_switch_to_previous_branch {
 }
 
 function make_aosp_kernel {
-		HC_VER="$BASE_HC_VER$VER-AOSP-UBER-TC5.3"
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-7.0"
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -186,7 +186,7 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-BS-UBER-TC5.3`....]"
+		echo "[....Building `echo $HC_VER-BS-UBERTC-7.0`....]"
 		echo
 		echo -e "${restore}"
 		make_bs_kernel
@@ -212,7 +212,7 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-CM-UBER-TC5.3`....]"
+		echo "[....Building `echo $HC_VER-CM-UBERTC-7.0`....]"
 		echo
 		echo -e "${restore}"
 		git_revert_to_cm_comp_gamma
@@ -240,7 +240,7 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-AOSP-UBER-TC5.3`....]"
+		echo "[....Building `echo $HC_VER-AOSP-UBERTC-7.0`....]"
 		echo
 		echo -e "${restore}"
 		git_revert_cm_commits
