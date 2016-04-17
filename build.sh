@@ -79,6 +79,7 @@ function git_revert_to_cm_comp_gamma {
 function git_switch_to_previous_branch {
 		git checkout $branch_name
 		git branch -D temp-for-making-aosp-builds
+		git branch -D temp-for-making-cm-builds
 }
 
 function make_aosp_kernel {
