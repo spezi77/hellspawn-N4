@@ -15,7 +15,7 @@ DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
 BASE_HC_VER="hellspawn-N4-mm-6.0"
-VER="-r07"
+VER="-r08"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
@@ -41,17 +41,15 @@ function make_kernel {
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
-function make_cm_kernel_GCC49 {
-		HC_VER="$BASE_HC_VER$VER-cm-UBER-TC4.9"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-4.9/bin/arm-eabi-
+function make_bs_kernel {
+		HC_VER="$BASE_HC_VER$VER-BS-UBER-TC5.3"
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
-function make_cm_kernel_GCC53 {
-		HC_VER="$BASE_HC_VER$VER-cm-UBER-TC5.3"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+function make_cm_kernel {
+		HC_VER="$BASE_HC_VER$VER-CM-UBER-TC5.3"
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -66,22 +64,25 @@ function git_revert_cm_commits {
 		git revert feda27448d5dad766dd06066f9f318f94a938ac3 --no-edit
 }
 
+function git_revert_to_cm_comp_gamma {
+		branch_name=$(git symbolic-ref -q HEAD)
+		branch_name=${branch_name##refs/heads/}
+		branch_name=${branch_name:-HEAD}
+		git checkout -b temp-for-making-cm-builds
+		git revert aec312d0288f709f809a9744760b1055704aa421 --no-edit
+		git revert da1972c44274be088f676cbb5a2953538a855d90 --no-edit
+		git revert f7acaa7cb32396c76eb7c8054474cbaa30c8e759 --no-edit
+		git revert 48a60002eb5f1838a01efdc28e040b7b617ee756 --no-edit
+		git revert 244ddc67e3da111b31f017e76c84ddcd85493150 --no-edit
+}
+
 function git_switch_to_previous_branch {
 		git checkout $branch_name
 		git branch -D temp-for-making-aosp-builds
 }
 
-function make_aosp_kernel_GCC49 {
-		HC_VER="$BASE_HC_VER$VER-aosp-UBER-TC4.9"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-4.9/bin/arm-eabi-
-		make $DEFCONFIG
-		make $THREAD
-		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
-}
-
-function make_aosp_kernel_GCC53 {
-		HC_VER="$BASE_HC_VER$VER-aosp-UBER-TC5.3"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+function make_aosp_kernel {
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBER-TC5.3"
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -184,10 +185,10 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-cm-UBER-TC4.9`....]"
+		echo "[....Building `echo $HC_VER-BS-UBER-TC5.3`....]"
 		echo
 		echo -e "${restore}"
-		make_cm_kernel_GCC49
+		make_bs_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -210,10 +211,11 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-cm-UBER-TC5.3`....]"
+		echo "[....Building `echo $HC_VER-CM-UBER-TC5.3`....]"
 		echo
 		echo -e "${restore}"
-		make_cm_kernel_GCC53
+		git_revert_to_cm_comp_gamma
+		make_cm_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -226,6 +228,7 @@ case "$cchoice" in
 		echo
 		echo -e "${restore}"
 		copy_dropbox
+		git_switch_to_previous_branch
 
 		HC_VER="$BASE_HC_VER$VER"
 		echo -e "${green}"
@@ -236,37 +239,11 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-aosp-UBER-TC4.9`....]"
+		echo "[....Building `echo $HC_VER-AOSP-UBER-TC5.3`....]"
 		echo
 		echo -e "${restore}"
 		git_revert_cm_commits
-		make_aosp_kernel_GCC49
-		echo -e "${green}"
-		echo
-		echo "[....Make `echo $HC_VER`.zip....]"
-		echo
-		echo -e "${restore}"
-		make_zip
-		echo -e "${green}"
-		echo
-		echo "[.....Moving `echo $HC_VER`.....]"
-		echo
-		echo -e "${restore}"
-		copy_dropbox
-
-		HC_VER="$BASE_HC_VER$VER"
-		echo -e "${green}"
-		echo
-		echo "[..........Cleaning up..........]"
-		echo
-		echo -e "${restore}"
-		clean_all
-		echo -e "${green}"
-		echo
-		echo "[....Building `echo $HC_VER-aosp-UBER-TC5.3`....]"
-		echo
-		echo -e "${restore}"
-		make_aosp_kernel_GCC53
+		make_aosp_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
