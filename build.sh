@@ -41,15 +41,55 @@ function make_kernel {
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
-function make_bs_kernel {
-		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-7.0"
+function make_bs_kernel_TC5 {
+		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-5.3"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
-function make_cm_kernel {
+function make_cm_kernel_TC5 {
+		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-5.3"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_aosp_kernel_TC5 {
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.3"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_bs_kernel_TC7 {
+		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-7.0"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-7.0/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_cm_kernel_TC7 {
 		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-7.0"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-7.0/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_aosp_kernel_TC7 {
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-7.0"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-7.0/bin/arm-eabi-
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -80,13 +120,6 @@ function git_switch_to_previous_branch {
 		git checkout $branch_name
 		git branch -D temp-for-making-aosp-builds
 		git branch -D temp-for-making-cm-builds
-}
-
-function make_aosp_kernel {
-		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-7.0"
-		make $DEFCONFIG
-		make $THREAD
-		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
 function make_zip {
@@ -186,10 +219,9 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-BS-UBERTC-7.0`....]"
+		make_bs_kernel_TC5
 		echo
 		echo -e "${restore}"
-		make_bs_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -212,11 +244,60 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-CM-UBERTC-7.0`....]"
+		make_bs_kernel_TC7
 		echo
 		echo -e "${restore}"
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
 		git_revert_to_cm_comp_gamma
-		make_cm_kernel
+		make_cm_kernel_TC5
+		echo
+		echo -e "${restore}"
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		make_cm_kernel_TC7
+		echo
+		echo -e "${restore}"
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -240,11 +321,35 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		echo "[....Building `echo $HC_VER-AOSP-UBERTC-7.0`....]"
+		git_revert_cm_commits
+		make_aosp_kernel_TC5
 		echo
 		echo -e "${restore}"
-		git_revert_cm_commits
-		make_aosp_kernel
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		make_aosp_kernel_TC7
+		echo
+		echo -e "${restore}"
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
