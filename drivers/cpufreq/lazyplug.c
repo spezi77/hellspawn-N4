@@ -80,8 +80,8 @@
 #include <linux/earlysuspend.h>
 #endif
 
-//#define DEBUG_LAZYPLUG
-#undef DEBUG_LAZYPLUG
+#define DEBUG_LAZYPLUG
+//#undef DEBUG_LAZYPLUG
 
 #define LAZYPLUG_MAJOR_VERSION	1
 #define LAZYPLUG_MINOR_VERSION	0
