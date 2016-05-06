@@ -137,6 +137,24 @@ default, disable intelli_plug debug mode as default, re-enable msm_limiter suspe
 #define DEFAULT_IGNORE_NICE 1
 #endif
 
+#define CONFIG_CPU_FREQ_GOV_SMARTMAX_MAKO
+#ifdef CONFIG_CPU_FREQ_GOV_SMARTMAX_MAKO
+#define DEFAULT_SUSPEND_IDEAL_FREQ 384000
+#define DEFAULT_AWAKE_IDEAL_FREQ 702000
+#define DEFAULT_RAMP_UP_STEP 300000
+#define DEFAULT_RAMP_DOWN_STEP 200000
+#define DEFAULT_MAX_CPU_LOAD 70
+#define DEFAULT_MIN_CPU_LOAD 40
+#define DEFAULT_UP_RATE 30000
+#define DEFAULT_DOWN_RATE 60000
+#define DEFAULT_SAMPLING_RATE 30000
+#define DEFAULT_INPUT_BOOST_DURATION 1200000
+#define DEFAULT_TOUCH_POKE_FREQ 1026000
+#define DEFAULT_BOOST_FREQ 1134000
+#define DEFAULT_IO_IS_BUSY 0
+#define DEFAULT_IGNORE_NICE 1
+#endif
+
 static unsigned int suspend_ideal_freq;
 static unsigned int awake_ideal_freq;
 /*
@@ -182,7 +200,7 @@ static unsigned int sampling_rate;
 static unsigned int input_boost_duration;
 
 static unsigned int touch_poke_freq;
-static bool touch_poke = true;
+static bool touch_poke = false;
 
 /*
  * should ramp_up steps during boost be possible
