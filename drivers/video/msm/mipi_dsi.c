@@ -34,6 +34,7 @@
 #include "mipi_dsi.h"
 #include "mdp.h"
 #include "mdp4.h"
+#include <linux/lcd_notify.h>
 
 u32 dsi_irq;
 u32 esc_byte_ratio;

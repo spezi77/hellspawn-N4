@@ -2660,4 +2660,10 @@ config FORCE_FAST_CHARGE
 		A simple sysfs interface to force adapters that
 		are detected as USB to charge as AC.
 
+config LCD_NOTIFY
+	bool "Enable lcd notify"
+	default n
+	help
+	  Call lcd notify handlers when the user requested sleep state
+
 endif
