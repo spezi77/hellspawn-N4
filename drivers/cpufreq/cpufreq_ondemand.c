@@ -112,11 +112,11 @@ static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info);
 static unsigned int dbs_enable;	/* number of CPUs using this policy */
 
 /*
- * dbs_mutex protects dbs_enable and dbs_info during start/stop.
+ * dbs_mutex protects dbs_enable in governor start/stop.
  */
 static DEFINE_MUTEX(dbs_mutex);
 
-static struct workqueue_struct *dbs_wq;
+static struct workqueue_struct *input_wq;
 
 static DEFINE_PER_CPU(struct work_struct, dbs_refresh_work);
 
@@ -337,8 +337,8 @@ static void update_sampling_rate(unsigned int new_rate)
 			cancel_delayed_work_sync(&dbs_info->work);
 			mutex_lock(&dbs_info->timer_mutex);
 
-			queue_delayed_work_on(dbs_info->cpu, dbs_wq,
-				&dbs_info->work, usecs_to_jiffies(new_rate));
+			schedule_delayed_work_on(dbs_info->cpu, &dbs_info->work,
+						 usecs_to_jiffies(new_rate));
 
 		}
 		mutex_unlock(&dbs_info->timer_mutex);
@@ -503,7 +503,7 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 		struct cpu_dbs_info_s *dbs_info;
 		dbs_info = &per_cpu(od_cpu_dbs_info, j);
 		dbs_info->prev_cpu_idle = get_cpu_idle_time(j,
-						&dbs_info->prev_cpu_wall, 0);
+						&dbs_info->prev_cpu_wall);
 		if (dbs_tuners_ins.ignore_nice)
 			dbs_info->prev_cpu_nice = kcpustat_cpu(j).cpustat[CPUTIME_NICE];
 
@@ -546,10 +546,6 @@ static ssize_t store_powersave_bias(struct kobject *a, struct attribute *b,
 				POWERSAVE_BIAS_MINLEVEL));
 
 	dbs_tuners_ins.powersave_bias = input;
-
-	mutex_lock(&dbs_mutex);
-	get_online_cpus();
-
 	if (!bypass) {
 		if (reenable_timer) {
 			/* reinstate dbs timer */
@@ -616,9 +612,6 @@ skip_this_cpu_bypass:
 			unlock_policy_rwsem_write(cpu);
 		}
 	}
-
-	put_online_cpus();
-	mutex_unlock(&dbs_mutex);
 
 	return count;
 }
@@ -707,7 +700,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
 
-		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time, 0);
+		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time);
 		cur_iowait_time = get_cpu_iowait_time(j, &cur_wall_time);
 
 		wall_time = (unsigned int)
@@ -909,7 +902,7 @@ static void do_dbs_timer(struct work_struct *work)
 			dbs_info->freq_lo, CPUFREQ_RELATION_H);
 		delay = dbs_info->freq_lo_jiffies;
 	}
-	queue_delayed_work_on(cpu, dbs_wq, &dbs_info->work, delay);
+	schedule_delayed_work_on(cpu, &dbs_info->work, delay);
 	mutex_unlock(&dbs_info->timer_mutex);
 }
 
@@ -923,7 +916,7 @@ static inline void dbs_timer_init(struct cpu_dbs_info_s *dbs_info)
 
 	dbs_info->sample_type = DBS_NORMAL_SAMPLE;
 	INIT_DELAYED_WORK_DEFERRABLE(&dbs_info->work, do_dbs_timer);
-	queue_delayed_work_on(dbs_info->cpu, dbs_wq, &dbs_info->work, delay);
+	schedule_delayed_work_on(dbs_info->cpu, &dbs_info->work, delay);
 }
 
 static inline void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info)
@@ -982,7 +975,7 @@ static void dbs_refresh_callback(struct work_struct *unused)
 			policy->cur = policy->max;
 
 		this_dbs_info->prev_cpu_idle = get_cpu_idle_time(cpu,
-				&this_dbs_info->prev_cpu_wall, 0);
+				&this_dbs_info->prev_cpu_wall);
 	}
 
 bail_incorrect_governor:
@@ -1000,7 +993,7 @@ static int dbs_migration_notify(struct notifier_block *nb,
 		&per_cpu(dbs_sync_work, target_cpu);
 	sync_work->src_cpu = (unsigned int)arg;
 
-	queue_work_on(target_cpu, dbs_wq,
+	queue_work_on(target_cpu, input_wq,
 		&per_cpu(dbs_sync_work, target_cpu).work);
 
 	return NOTIFY_OK;
@@ -1090,8 +1083,9 @@ static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		return;
 	}
 
-	for_each_online_cpu(i)
-		queue_work_on(i, dbs_wq, &per_cpu(dbs_refresh_work, i));
+	for_each_online_cpu(i) {
+		queue_work_on(i, input_wq, &per_cpu(dbs_refresh_work, i));
+	}
 }
 
 static int dbs_input_connect(struct input_handler *handler,
@@ -1168,7 +1162,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			j_dbs_info->cur_policy = policy;
 
 			j_dbs_info->prev_cpu_idle = get_cpu_idle_time(j,
-						&j_dbs_info->prev_cpu_wall, 0);
+						&j_dbs_info->prev_cpu_wall);
 			if (dbs_tuners_ins.ignore_nice)
 				j_dbs_info->prev_cpu_nice =
 						kcpustat_cpu(j).cpustat[CPUTIME_NICE];
@@ -1254,7 +1248,11 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		else if (policy->min > this_dbs_info->cur_policy->cur)
 			__cpufreq_driver_target(this_dbs_info->cur_policy,
 				policy->min, CPUFREQ_RELATION_L);
-		dbs_check_cpu(this_dbs_info);
+		else if (dbs_tuners_ins.powersave_bias != 0)
+			ondemand_powersave_bias_setspeed(
+				this_dbs_info->cur_policy,
+				policy,
+				dbs_tuners_ins.powersave_bias);
 		mutex_unlock(&this_dbs_info->timer_mutex);
 		break;
 	}
@@ -1286,9 +1284,9 @@ static int __init cpufreq_gov_dbs_init(void)
 			MIN_SAMPLING_RATE_RATIO * jiffies_to_usecs(10);
 	}
 
-	dbs_wq = alloc_workqueue("ondemand_dbs_wq", WQ_HIGHPRI, 0);
-	if (!dbs_wq) {
-		printk(KERN_ERR "Failed to create ondemand_dbs_wq workqueue\n");
+	input_wq = create_workqueue("iewq");
+	if (!input_wq) {
+		printk(KERN_ERR "Failed to create iewq workqueue\n");
 		return -EFAULT;
 	}
 	for_each_possible_cpu(i) {
@@ -1311,14 +1309,8 @@ static int __init cpufreq_gov_dbs_init(void)
 
 static void __exit cpufreq_gov_dbs_exit(void)
 {
-	int i;
 	cpufreq_unregister_governor(&cpufreq_gov_ondemand);
-	for_each_possible_cpu(i) {
-		struct cpu_dbs_info_s *this_dbs_info =
-			&per_cpu(od_cpu_dbs_info, i);
-		mutex_destroy(&this_dbs_info->timer_mutex);
-	}
-	destroy_workqueue(dbs_wq);
+	destroy_workqueue(input_wq);
 }
 
 
