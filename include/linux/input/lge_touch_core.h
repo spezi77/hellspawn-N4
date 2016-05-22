@@ -234,7 +234,7 @@ struct lge_touch_data {
 	struct delayed_work             work_init;
 	struct delayed_work             work_touch_lock;
 	struct work_struct              work_fw_upgrade;
-	struct notifier_block 			notif;
+	struct early_suspend            early_suspend;
 	struct touch_platform_data      *pdata;
 	struct touch_data               ts_data;
 	struct touch_fw_info            fw_info;
