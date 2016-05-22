@@ -37,9 +37,6 @@
 
 #include "devices.h"
 #include "board-mako.h"
-#ifdef CONFIG_LCD_NOTIFY
-#include <linux/lcd_notify.h>
-#endif
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 /* prim = 1366 x 768 x 3(bpp) x 3(pages) */
@@ -469,9 +466,7 @@ static int mipi_dsi_panel_power(int on)
 		dsi_power_on = true;
 	}
 	if (on) {
-#ifdef CONFIG_LCD_NOTIFY
-		lcd_notifier_call_chain(LCD_EVENT_ON_START, NULL);
-#endif
+
 		if (lge_get_board_revno() > HW_REV_C) {
 			rc = regulator_enable(ext_dsv_load);
 			if (rc) {
@@ -526,13 +521,8 @@ static int mipi_dsi_panel_power(int on)
 			return -EINVAL;
 		}
 		mdelay(5);
-#ifdef CONFIG_LCD_NOTIFY
-		lcd_notifier_call_chain(LCD_EVENT_ON_END, NULL);
-#endif
+
 	} else {
-#ifdef CONFIG_LCD_NOTIFY
-		lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
-#endif
 		/* LCD RESET LOW */
 		gpio42_param.output_value = 0;
 		rc = pm8xxx_gpio_config(gpio42,&gpio42_param);
@@ -583,9 +573,7 @@ static int mipi_dsi_panel_power(int on)
 			}
 		}
 	}
-#ifdef CONFIG_LCD_NOTIFY
-		lcd_notifier_call_chain(LCD_EVENT_OFF_END, NULL);
-#endif
+
 	return 0;
 }
 

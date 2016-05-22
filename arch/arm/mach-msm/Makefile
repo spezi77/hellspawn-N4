@@ -407,8 +407,6 @@ obj-$(CONFIG_HAS_MACH_MEMUTILS) += memutils/
 obj-$(CONFIG_ALUCARD_HOTPLUG) += alucard_hotplug.o
 obj-$(CONFIG_ZEN_DECISION) += msm_zen_decision.o
 
-obj-$(CONFIG_LCD_NOTIFY) += lcd_notify.o
-
 obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
 
 obj-$(CONFIG_HAS_MACH_MEMUTILS) += memutils/
