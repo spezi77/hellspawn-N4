@@ -361,7 +361,7 @@ obj-$(CONFIG_MSM_DCVS) += msm_dcvs_scm.o msm_dcvs.o
 ifdef CONFIG_MSM_MPDEC
 obj-y += msm_mpdecision.o
 else
-obj-$(CONFIG_MSM_DCVS) += msm_mpdecision_qcom.o
+//obj-$(CONFIG_MSM_DCVS) += msm_mpdecision_qcom.o //remove uncomment to enable msm_mpdecision hotplug by bricked
 endif
 
 obj-$(CONFIG_MSM_RUN_QUEUE_STATS) += msm_rq_stats.o
