@@ -176,6 +176,7 @@ struct qseecom_registered_listener_list {
 	struct list_head                 list;
 	struct qseecom_register_listener_req svc;
 	u8  *sb_reg_req;
+	uint32_t user_virt_sb_base;
 	u8 *sb_virt;
 	s32 sb_phys;
 	size_t sb_length;
@@ -350,6 +351,10 @@ static int qseecom_register_listener(struct qseecom_dev_handle *data,
 		pr_err("copy_from_user failed\n");
 		return ret;
 	}
+	if (!access_ok(VERIFY_WRITE, (void __user *)rcvd_lstnr.virt_sb_base,
+			rcvd_lstnr.sb_size))
+		return -EFAULT;
+
 	data->listener.id = 0;
 	data->service = true;
 	if (!__qseecom_is_svc_unique(data, &rcvd_lstnr)) {
@@ -368,6 +373,7 @@ static int qseecom_register_listener(struct qseecom_dev_handle *data,
 
 	new_entry->svc.listener_id = rcvd_lstnr.listener_id;
 	new_entry->sb_length = rcvd_lstnr.sb_size;
+	new_entry->user_virt_sb_base = rcvd_lstnr.virt_sb_base;
 	if (__qseecom_set_sb_memory(new_entry, data, &rcvd_lstnr)) {
 		pr_err("qseecom_set_sb_memoryfailed\n");
 		kzfree(new_entry);
@@ -470,6 +476,9 @@ static int qseecom_set_client_mem_param(struct qseecom_dev_handle *data,
 
 	/* Copy the relevant information needed for loading the image */
 	if (copy_from_user(&req, (void __user *)argp, sizeof(req)))
+		return -EFAULT;
+	if (!access_ok(VERIFY_WRITE, (void __user *)req.virt_sb_base,
+			req.sb_len))
 		return -EFAULT;
 
 	if ((req.ifd_data_fd <= 0) || (req.virt_sb_base == 0) ||
@@ -845,6 +854,105 @@ static uint32_t __qseecom_uvirt_to_kphys(struct qseecom_dev_handle *data,
 	return data->client.sb_phys + (virt - data->client.user_virt_sb_base);
 }
 
+static uint32_t __qseecom_uvirt_to_kvirt(struct qseecom_dev_handle *data,
+					 uint32_t virt)
+{
+	return (uint32_t)data->client.sb_virt +
+				(virt - data->client.user_virt_sb_base);
+}
+
+static int __qseecom_send_cmd_legacy(struct qseecom_dev_handle *data,
+				struct qseecom_send_cmd_req *req)
+{
+	int ret = 0;
+	unsigned long flags;
+	u32 reqd_len_sb_in = 0;
+	struct qseecom_command cmd;
+	struct qseecom_response resp;
+
+
+	if (req->cmd_req_buf == NULL || req->resp_buf == NULL) {
+		pr_err("cmd buffer or response buffer is null\n");
+		return -EINVAL;
+	}
+
+	if (req->cmd_req_len <= 0 ||
+		req->resp_len <= 0 ||
+		req->cmd_req_len > data->client.sb_length ||
+		req->resp_len > data->client.sb_length) {
+		pr_err("cmd buffer length or "
+				"response buffer length not valid\n");
+		return -EINVAL;
+	}
+
+	reqd_len_sb_in = req->cmd_req_len + req->resp_len;
+	if (reqd_len_sb_in > data->client.sb_length) {
+		pr_debug("Not enough memory to fit cmd_buf and "
+			"resp_buf. Required: %u, Available: %u\n",
+				reqd_len_sb_in, data->client.sb_length);
+		return -ENOMEM;
+	}
+	cmd.cmd_type = TZ_SCHED_CMD_NEW;
+	cmd.sb_in_cmd_addr = (u8 *) data->client.sb_phys;
+	cmd.sb_in_cmd_len = req->cmd_req_len;
+
+	resp.cmd_status = TZ_SCHED_STATUS_INCOMPLETE;
+	resp.sb_in_rsp_addr = (u8 *)data->client.sb_phys + req->cmd_req_len;
+	resp.sb_in_rsp_len = req->resp_len;
+
+	ret = scm_call(SCM_SVC_TZSCHEDULER, 1, (const void *)&cmd,
+					sizeof(cmd), &resp, sizeof(resp));
+
+	if (ret) {
+		pr_err("qseecom_scm_call_legacy failed with err: %d\n", ret);
+		return ret;
+	}
+
+	while (resp.cmd_status != TZ_SCHED_STATUS_COMPLETE) {
+		/*
+		 * If cmd is incomplete, get the callback cmd out from SB out
+		 * and put it on the list
+		 */
+		struct qseecom_registered_listener_list *ptr_svc = NULL;
+		/*
+		 * We don't know which service can handle the command. so we
+		 * wake up all blocking services and let them figure out if
+		 * they can handle the given command.
+		 */
+		spin_lock_irqsave(&qseecom.registered_listener_list_lock,
+					flags);
+		list_for_each_entry(ptr_svc,
+				&qseecom.registered_listener_list_head, list) {
+				ptr_svc->rcv_req_flag = 1;
+				wake_up_interruptible(&ptr_svc->rcv_req_wq);
+		}
+		spin_unlock_irqrestore(&qseecom.registered_listener_list_lock,
+				flags);
+
+		pr_debug("waking up rcv_req_wq and "
+				"waiting for send_resp_wq\n");
+		if (wait_event_freezable(qseecom.send_resp_wq,
+				__qseecom_listener_has_sent_rsp(data))) {
+			pr_warning("qseecom Interrupted: exiting send_cmd loop\n");
+			return -ERESTARTSYS;
+		}
+
+		if (data->abort) {
+			pr_err("Aborting driver\n");
+			return -ENODEV;
+		}
+		qseecom.send_resp_flag = 0;
+		cmd.cmd_type = TZ_SCHED_CMD_PENDING;
+		ret = scm_call(SCM_SVC_TZSCHEDULER, 1, (const void *)&cmd,
+					sizeof(cmd), &resp, sizeof(resp));
+		if (ret) {
+			pr_err("qseecom_scm_call failed with err: %d\n", ret);
+			return ret;
+		}
+	}
+	return ret;
+}
+
 static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 				struct qseecom_send_cmd_req *req)
 {
@@ -1018,6 +1126,23 @@ static int qseecom_send_modfd_cmd(struct qseecom_dev_handle *data,
 		return ret;
 	}
 
+	if (req.cmd_req_buf == NULL || req.resp_buf == NULL) {
+		pr_err("cmd buffer or response buffer is null\n");
+		return -EINVAL;
+	}
+	if (((uint32_t)req.cmd_req_buf < data->client.user_virt_sb_base) ||
+		((uint32_t)req.cmd_req_buf >= (data->client.user_virt_sb_base +
+					data->client.sb_length))) {
+		pr_err("cmd buffer address not within shared bufffer\n");
+		return -EINVAL;
+	}
+
+	if (((uint32_t)req.resp_buf < data->client.user_virt_sb_base)  ||
+		((uint32_t)req.resp_buf >= (data->client.user_virt_sb_base +
+					data->client.sb_length))){
+		pr_err("response buffer address not within shared bufffer\n");
+		return -EINVAL;
+	}
 	if (req.cmd_req_len == 0 || req.cmd_req_len > data->client.sb_length ||
 			req.resp_len > data->client.sb_length) {
 		pr_err("cmd or response buffer length not valid\n");
@@ -1037,6 +1162,11 @@ static int qseecom_send_modfd_cmd(struct qseecom_dev_handle *data,
 			return -EINVAL;
 		}
 	}
+	req.cmd_req_buf = (void *)__qseecom_uvirt_to_kvirt(data,
+						(uint32_t)req.cmd_req_buf);
+	req.resp_buf = (void *)__qseecom_uvirt_to_kvirt(data,
+						(uint32_t)req.resp_buf);
+
 	ret = __qseecom_update_with_phy_addr(&req);
 	if (ret)
 		return ret;
