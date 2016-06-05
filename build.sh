@@ -44,7 +44,7 @@ function make_kernel {
 function make_bs_kernel_TC5 {
 		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-5.3"
 		echo "[....Building `echo $HC_VER`....]"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -53,7 +53,7 @@ function make_bs_kernel_TC5 {
 function make_cm_kernel_TC5 {
 		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-5.3"
 		echo "[....Building `echo $HC_VER`....]"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
@@ -62,7 +62,7 @@ function make_cm_kernel_TC5 {
 function make_aosp_kernel_TC5 {
 		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.3"
 		echo "[....Building `echo $HC_VER`....]"
-		export CROSS_COMPILE=/home/spezi77/android/prebuilts/gcc/linux-x86/arm/arm-eabi-5.3/bin/arm-eabi-
+		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 		make $DEFCONFIG
 		make $THREAD
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
