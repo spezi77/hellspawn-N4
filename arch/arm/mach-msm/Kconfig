@@ -1687,6 +1687,11 @@ config ZEN_DECISION
 
 	  Enable this if you'd like the ability to disable MPDecision.
 
+config THUNDERPLUG_CONTROL
+	bool "Enable plugging down/up of cores based on load per core"
+	help
+	  This driver hotplugs cpu cores based on per-core load
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n

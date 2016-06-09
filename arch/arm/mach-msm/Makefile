@@ -411,3 +411,4 @@ obj-$(CONFIG_CPU_FREQ_MSM) += cpufreq.o
 
 obj-$(CONFIG_HAS_MACH_MEMUTILS) += memutils/
 
+obj-$(CONFIG_THUNDERPLUG_CONTROL) += thunderplug.o
