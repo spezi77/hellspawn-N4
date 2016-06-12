@@ -15,7 +15,7 @@ DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
 BASE_HC_VER="hellspawn-N4-mm-6.0"
-VER="-r12"
+VER="-r13"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
@@ -42,7 +42,7 @@ function make_kernel {
 }
 
 function make_bs_kernel_TC5 {
-		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-5.3"
+		HC_VER="$BASE_HC_VER$VER-BS-UBERTC-5.4"
 		echo "[....Building `echo $HC_VER`....]"
 		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 		make $DEFCONFIG
@@ -51,7 +51,7 @@ function make_bs_kernel_TC5 {
 }
 
 function make_cm_kernel_TC5 {
-		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-5.3"
+		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-5.4"
 		echo "[....Building `echo $HC_VER`....]"
 		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 		make $DEFCONFIG
@@ -60,7 +60,7 @@ function make_cm_kernel_TC5 {
 }
 
 function make_aosp_kernel_TC5 {
-		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.3"
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.4"
 		echo "[....Building `echo $HC_VER`....]"
 		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 		make $DEFCONFIG
