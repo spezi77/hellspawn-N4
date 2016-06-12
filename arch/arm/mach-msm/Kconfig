@@ -1669,6 +1669,14 @@ config ZEN_DECISION
 
 	  Enable this if you'd like the ability to disable MPDecision.
 
+config DYN_HOTPLUG
+ 	bool "hotplug driver"
+ 	depends on HOTPLUG_CPU
+ 	default n
+ 	help
+	  The Dynamic hotplug driver by Stratos Karafotis to automatically
+	  online/offline CPUs according to load.
+
 config MSM_AVS_HW
 	bool "Enable Adaptive Voltage Scaling (AVS)"
 	default n
