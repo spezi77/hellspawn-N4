@@ -172,8 +172,7 @@ case "$cchoice" in
 		echo "[....Building `echo $HC_VER`....]"
 		echo
 		echo -e "${restore}"
-		git_revert_cm_commits
-		make_aosp_kernel_TC5
+		make_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -186,7 +185,6 @@ case "$cchoice" in
 		echo
 		echo -e "${restore}"
 		copy_dropbox
-		git_switch_to_previous_branch
 		break
 		;;
 	2 )
@@ -196,8 +194,7 @@ case "$cchoice" in
 		echo "[....Building `echo $HC_VER`....]"
 		echo
 		echo -e "${restore}"
-		git_revert_cm_commits
-		make_aosp_kernel_TC5
+		make_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -210,7 +207,6 @@ case "$cchoice" in
 		echo
 		echo -e "${restore}"
 		copy_dropbox
-		git_switch_to_previous_branch
 		break
 		;;
 	3 )
