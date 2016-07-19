@@ -15,7 +15,7 @@ DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
 BASE_HC_VER="hellspawn-N4-mm-6.0"
-VER="-r14"
+VER="-r15"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
