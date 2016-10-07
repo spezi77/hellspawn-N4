@@ -260,6 +260,13 @@ struct timed_vibrator_data android_vibrator_data = {
 	.max_timeout = 30000, /* max time for vibrator enable 30 sec. */
 };
 
+void vibrate(int strength)
+{
+	struct timed_vibrator_data *vib = &android_vibrator_data;
+
+        vibrator_enable(&vib->dev, strength);
+}
+
 static int android_vibrator_probe(struct platform_device *pdev)
 {
 

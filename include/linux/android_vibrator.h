@@ -26,5 +26,6 @@ struct android_vibrator_platform_data {
 	int (*vibrator_init)(void);
 };
 
+void vibrate(int strength);
 #endif
 

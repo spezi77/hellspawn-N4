@@ -32,6 +32,7 @@
 #include <linux/version.h>
 #include <linux/atomic.h>
 #include <linux/gpio.h>
+#include <linux/android_vibrator.h>
 
 #include <linux/input/lge_touch_core.h>
 
@@ -80,6 +81,8 @@ struct timeval t_debug[TIME_PROFILE_MAX];
 #endif
 
 #define MAX_RETRY_COUNT         3
+
+#define VIBRATE_STRENGTH        20
 
 #ifdef LGE_TOUCH_POINT_DEBUG
 #define MAX_TRACE	500
@@ -866,6 +869,8 @@ static inline void touch_check_dt_wake(struct lge_touch_data *ts, int id)
 
 	if (ts->dt_wake.hits < 2)
 		return;
+	
+	vibrate(VIBRATE_STRENGTH);
 
 	/* Double tap detected try to resume */
 	TOUCH_INFO_MSG("Double tap detected try to resume\n");
