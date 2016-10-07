@@ -248,7 +248,7 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 			cpu_smash(cur_load);
 	}
 
-	queue_delayed_work(wq, &decide_hotplug,
+	queue_delayed_work_on(0, wq, &decide_hotplug,
 		msecs_to_jiffies(t->timer * HZ));
 
 	return;
@@ -260,7 +260,7 @@ reschedule:
 	 * we don't need to run this work every 100ms, but rather just
 	 * once every 2 seconds
 	 */
-	queue_delayed_work(wq, &decide_hotplug, HZ * 2);
+	queue_delayed_work_on(0, wq, &decide_hotplug, HZ * 2);
 }
 
 static void mako_hotplug_suspend(struct work_struct *work)
@@ -509,9 +509,7 @@ static int __devinit mako_hotplug_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct hotplug_tunables *t = &tunables;
 
-	wq = alloc_workqueue("mako_hotplug_workqueue",
-		WQ_FREEZABLE |
-		WQ_UNBOUND, 1);
+	wq = alloc_workqueue("mako_hotplug_workqueue", WQ_FREEZABLE, 1);
 
 	if (!wq) {
 		ret = -ENOMEM;
@@ -543,7 +541,7 @@ static int __devinit mako_hotplug_probe(struct platform_device *pdev)
 	INIT_WORK(&suspend, mako_hotplug_suspend);
 	INIT_DELAYED_WORK(&decide_hotplug, decide_hotplug_func);
 
-	queue_delayed_work(wq, &decide_hotplug, HZ * 30);
+	queue_delayed_work_on(0, wq, &decide_hotplug, HZ * 30);
 
 	register_early_suspend(&early_suspend);
 err:
