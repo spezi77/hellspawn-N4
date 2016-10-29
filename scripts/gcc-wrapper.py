@@ -43,6 +43,7 @@ allowed_warnings = set([
     "alignment.c:327",
     "mmu.c:602",
     "return_address.c:62",
+    "mipi_lgit.c:600",
     "peripheral-loader.c:579",
     "vcd_res_tracker.c:605",
     "wlan_hdd_wmm.c:847",
