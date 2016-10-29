@@ -14,8 +14,8 @@ KERNEL="zImage"
 DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
-BASE_HC_VER="hellspawn-N4-nougat"
-VER="-r01"
+BASE_HC_VER="HellSpawn-N4-Nougat"
+VER="-R01"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
