@@ -11,11 +11,11 @@ clear
 # Resources
 THREAD="-j6"
 KERNEL="zImage"
-DEFCONFIG="mako_defconfig"
+DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
-BASE_HC_VER="N4-nougat-7.0-stock"
-VER="-r01"
+BASE_HC_VER="HellSpawn-N4-Nougat"
+VER="-R02"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
@@ -27,9 +27,9 @@ export LOCALVERSION="$HC_VER"
 # Paths
 KERNEL_DIR=`pwd`
 REPACK_DIR="${HOME}/android/Kernel/anykernel_msm"
-ZIP_MOVE="${HOME}/android/Kernel/Releases/N4-nougat-7.0"
-ZIMAGE_DIR="${HOME}/android/purenexus-n/kernel/lge/mako/arch/arm/boot"
-DB_FOLDER="${HOME}/Dropbox/Kernel-Betas/N4-nougat-7.0"
+ZIP_MOVE="${HOME}/android/Kernel/Releases/hellspawn-N4"
+ZIMAGE_DIR="${HOME}/android/Kernel/android_kernel_lge_mako/arch/arm/boot"
+DB_FOLDER="${HOME}/Dropbox/Kernel-Betas/hellspawn-N4"
 
 # Functions
 function clean_all {
