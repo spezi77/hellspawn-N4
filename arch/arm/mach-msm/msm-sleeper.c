@@ -29,7 +29,7 @@ extern uint32_t ex_max_freq;
 static int limit_set = 0;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static void __cpuinit msm_sleeper_early_suspend(struct early_suspend *h)
+static void msm_sleeper_early_suspend(struct early_suspend *h)
 {
 	int cpu;
 	int i;
@@ -50,7 +50,7 @@ static void __cpuinit msm_sleeper_early_suspend(struct early_suspend *h)
 	return; 
 }
 
-static void __cpuinit msm_sleeper_late_resume(struct early_suspend *h)
+static void msm_sleeper_late_resume(struct early_suspend *h)
 {
 	int cpu;
 	int i;
