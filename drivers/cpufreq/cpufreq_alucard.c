@@ -39,7 +39,6 @@
 #define CPUS_DOWN_RATE			2
 #define CPUS_UP_RATE			1
 #define DEC_CPU_LOAD			70
-#define DEC_CPU_LOAD_AT_MIN_FREQ	60
 #define SAMPLING_RATE			50000
 #define INC_CPU_LOAD_AT_MIN_FREQ	70
 #define INC_CPU_LOAD			70
@@ -48,12 +47,6 @@
 
 #define CPUS_UP_RATE			1
 #define CPUS_DOWN_RATE			2
-
-#ifdef CONFIG_MACH_LGE
-#define FREQ_RESPONSIVENESS		1512000
-#else
-#define FREQ_RESPONSIVENESS		1512000
-#endif
 
 /* Pump Inc/Dec for all cores */
 #define PUMP_INC_STEP_AT_MIN_FREQ	6
