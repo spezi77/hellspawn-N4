@@ -14,14 +14,13 @@ KERNEL="zImage"
 DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
-BASE_HC_VER="HellSpawn-N4-Nougat"
+BASE_HC_VER="-HellSpawn-N4-Nougat"
 VER="-R02"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
 export ARCH=arm
 export SUBARCH=arm
-export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
 export LOCALVERSION="$HC_VER"
 
 # Paths
@@ -43,6 +42,38 @@ function make_kernel {
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
+function make_cm_kernel {
+		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-5.4"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function make_aosp_kernel {
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.4"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function git_revert_cm_commits {
+		branch_name=$(git symbolic-ref -q HEAD)
+		branch_name=${branch_name##refs/heads/}
+		branch_name=${branch_name:-HEAD}
+		git checkout -b temp-for-making-aosp-builds
+		git revert c41eb8e612e9f15a9b0993dc8a150856ebd0c265 --no-edit
+		git revert 3369f3e96136d502a6e63bf724ddab277a036798 --no-edit
+}
+
+function git_switch_to_previous_branch {
+		git checkout $branch_name
+		git branch -D temp-for-making-aosp-builds
+}
+
 function make_zip {
 		cd $REPACK_DIR
 		zip -9 -r --exclude='*.git*' `echo $HC_VER`.zip .
@@ -59,7 +90,7 @@ function copy_dropbox {
 DATE_START=$(date +"%s")
 
 echo -e "${green}"
-echo "N4 Nougat Kernel Creation Script:"
+echo "HellSpawn-N4 Nougat Kernel Creation Script:"
 echo
 
 echo "---------------"
@@ -77,7 +108,7 @@ echo -e "${restore}"
 echo "----------------------------"
 echo "Please choose your option:"
 echo "----------------------------"
-while read -p " [1]clean-build / [2]dirty-build / [3]abort " cchoice
+while read -p " [1]clean-build / [2]dirty-build / [3]batch-build / [4]abort " cchoice
 do
 case "$cchoice" in
 	1 )
@@ -131,6 +162,61 @@ case "$cchoice" in
 		break
 		;;
 	3 )
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		make_cm_kernel
+		echo
+		echo -e "${restore}"
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		git_revert_cm_commits
+		make_aosp_kernel
+		echo
+		echo -e "${restore}"
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+		git_switch_to_previous_branch
+
+		break
+		;;
+	4 )
 		break
 		;;
 	* )
