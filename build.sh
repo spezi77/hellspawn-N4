@@ -14,14 +14,14 @@ KERNEL="zImage"
 DEFCONFIG="hellspawn_mako_defconfig"
 
 # Kernel Details
-BASE_HC_VER="-HellSpawn-N4-Nougat"
+BASE_HC_VER="HellSpawn-N4-Nougat"
 VER="-R02"
 HC_VER="$BASE_HC_VER$VER"
 
 # Vars
 export ARCH=arm
 export SUBARCH=arm
-export LOCALVERSION="$HC_VER"
+export LOCALVERSION="-$HC_VER"
 
 # Paths
 KERNEL_DIR=`pwd`
