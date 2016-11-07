@@ -60,18 +60,37 @@ function make_aosp_kernel {
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
-function git_revert_cm_commits {
+function make_special_aosp_kernel {
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.4-CPUSET"
+		echo "[....Building `echo $HC_VER`....]"
+		export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
+		make $DEFCONFIG
+		make $THREAD
+		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
+}
+
+function git_addback_cm_commits {
 		branch_name=$(git symbolic-ref -q HEAD)
 		branch_name=${branch_name##refs/heads/}
 		branch_name=${branch_name:-HEAD}
-		git checkout -b temp-for-making-aosp-builds
-		git revert c41eb8e612e9f15a9b0993dc8a150856ebd0c265 --no-edit
-		git revert 3369f3e96136d502a6e63bf724ddab277a036798 --no-edit
+		git checkout -b temp-for-making-cm-build
+		git revert 6277686dfe412edf695878bd354dab504bd911a4 --no-edit
+		git revert afa96f6f21d05d44aa0df138e92cd5dc404e5a36 --no-edit
+}
+
+function git_addback_cpuset_commits {
+		branch_name=$(git symbolic-ref -q HEAD)
+		branch_name=${branch_name##refs/heads/}
+		branch_name=${branch_name:-HEAD}
+		git checkout -b temp-for-making-special-build
+		git revert 9474793a59bf888faa783d8556e56dc12b2b5831 --no-edit
+		git revert d09522ae74613f29543a669a9c051dcb2037c331 --no-edit
 }
 
 function git_switch_to_previous_branch {
 		git checkout $branch_name
-		git branch -D temp-for-making-aosp-builds
+		git branch -D temp-for-making-cm-build
+		git branch -D temp-for-making-special-build
 }
 
 function make_zip {
@@ -171,7 +190,7 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		make_cm_kernel
+		make_aosp_kernel
 		echo
 		echo -e "${restore}"
 		echo -e "${green}"
@@ -196,8 +215,36 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		git_revert_cm_commits
-		make_aosp_kernel
+		git_addback_cm_commits
+		make_cm_kernel
+		echo
+		echo -e "${restore}"
+		echo -e "${green}"
+		echo
+		echo "[....Make `echo $HC_VER`.zip....]"
+		echo
+		echo -e "${restore}"
+		make_zip
+		echo -e "${green}"
+		echo
+		echo "[.....Moving `echo $HC_VER`.....]"
+		echo
+		echo -e "${restore}"
+		copy_dropbox
+		git_switch_to_previous_branch
+
+
+		HC_VER="$BASE_HC_VER$VER"
+		echo -e "${green}"
+		echo
+		echo "[..........Cleaning up..........]"
+		echo
+		echo -e "${restore}"
+		clean_all
+		echo -e "${green}"
+		echo
+		git_addback_cpuset_commits
+		make_special_aosp_kernel
 		echo
 		echo -e "${restore}"
 		echo -e "${green}"
