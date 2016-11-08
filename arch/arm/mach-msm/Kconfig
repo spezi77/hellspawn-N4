@@ -1635,12 +1635,6 @@ config USERSPACE_VOLTAGE_CONTROL
 	help
 	  Userspace Voltage Control
 
-config GPU_OVERCLOCK
-	bool "Enable GPU Overclocking option"
-	default n
-	help
-	  GPU OC to 487.5Mhz
-
 config ALUCARD_HOTPLUG_USE_RQ_STATS
 	bool "Enable alucard-hotplug msm rq statistics using"
 	depends on ALUCARD_HOTPLUG && MSM_RUN_QUEUE_STATS
