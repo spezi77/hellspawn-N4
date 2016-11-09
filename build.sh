@@ -72,6 +72,8 @@ function git_addback_cm_commits {
 		branch_name=${branch_name##refs/heads/}
 		branch_name=${branch_name:-HEAD}
 		git checkout -b temp-for-making-cm-build
+		git revert 918232a7a3744b44f201c76e2869c2b9fdc4d8fd --no-edit
+		git revert 574ee85f00b32b4699e50909df547ce16b71cead --no-edit
 		git revert 6277686dfe412edf695878bd354dab504bd911a4 --no-edit
 		git revert afa96f6f21d05d44aa0df138e92cd5dc404e5a36 --no-edit
 }
