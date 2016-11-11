@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2013,2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -267,14 +267,14 @@ kgsl_mem_entry_track_gpuaddr(struct kgsl_process_private *process,
 	 * gpu address
 	 */
 	if (kgsl_memdesc_use_cpu_map(&entry->memdesc)) {
-		if (!entry->memdesc.gpuaddr)
+		/* cpu map flag is enabled. do nothing */
+	} else {
+		if (entry->memdesc.gpuaddr) {
+			WARN_ONCE(1, "gpuaddr assigned w/o holding memory lock\n");
+			ret = -EINVAL;
 			goto done;
-	} else if (entry->memdesc.gpuaddr) {
-		WARN_ONCE(1, "gpuaddr assigned w/o holding memory lock\n");
-		ret = -EINVAL;
-		goto done;
-	}
-	if (!kgsl_memdesc_use_cpu_map(&entry->memdesc)) {
+		}
+
 		ret = kgsl_mmu_get_gpuaddr(process->pagetable, &entry->memdesc);
 	}
 
