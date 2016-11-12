@@ -213,34 +213,6 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		git_addback_cm_commits
-		make_cm_kernel
-		echo
-		echo -e "${restore}"
-		echo -e "${green}"
-		echo
-		echo "[....Make `echo $HC_VER`.zip....]"
-		echo
-		echo -e "${restore}"
-		make_zip
-		echo -e "${green}"
-		echo
-		echo "[.....Moving `echo $HC_VER`.....]"
-		echo
-		echo -e "${restore}"
-		copy_dropbox
-		git_switch_to_previous_branch
-
-
-		HC_VER="$BASE_HC_VER$VER"
-		echo -e "${green}"
-		echo
-		echo "[..........Cleaning up..........]"
-		echo
-		echo -e "${restore}"
-		clean_all
-		echo -e "${green}"
-		echo
 		git_addback_cpuset_commits
 		make_special_aosp_kernel
 		echo
