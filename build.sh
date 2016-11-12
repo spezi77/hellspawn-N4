@@ -141,7 +141,8 @@ case "$cchoice" in
 		echo "[....Building `echo $HC_VER`....]"
 		echo
 		echo -e "${restore}"
-		make_kernel
+		git_addback_cm_commits
+		make_cm_kernel
 		echo -e "${green}"
 		echo
 		echo "[....Make `echo $HC_VER`.zip....]"
@@ -154,6 +155,7 @@ case "$cchoice" in
 		echo
 		echo -e "${restore}"
 		copy_dropbox
+		git_switch_to_previous_branch
 		break
 		;;
 	2 )
