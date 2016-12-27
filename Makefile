@@ -244,8 +244,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -fgcse-las -pipe -DNDEBUG -std=gnu89
-HOSTCXXFLAGS = -pipe -DNDEBUG -O2 -fgcse-las
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer -fgcse-las -pipe -DNDEBUG -std=gnu89 -fno-tree-vectorize
+HOSTCXXFLAGS = -pipe -DNDEBUG -O2 -fgcse-las -fno-tree-vectorize
 
 # More Graphite
 HOSTCXXFLAGS += -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
@@ -350,7 +350,7 @@ CHECK		= sparse
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
 
-KERNELFLAGS  = -pipe -O2 -DNDEBUG -munaligned-access -fgcse-lm -fgcse-sm -fsingle-precision-constant -fforce-addr -fsched-spec-load -mtune=cortex-a15 -marm -mfpu=neon -ftree-vectorize -fpredictive-commoning -ffast-math -floop-nest-optimize $(GRAPHITE_FLAGS)
+KERNELFLAGS  = -pipe -O2 -DNDEBUG -munaligned-access -fgcse-lm -fgcse-sm -fsingle-precision-constant -fforce-addr -fsched-spec-load -mtune=cortex-a15 -marm -mfpu=neon -ftree-vectorize -fpredictive-commoning -ffast-math -floop-nest-optimize -fno-tree-vectorize $(GRAPHITE_FLAGS)
 
 MODFLAGS  = -DMODULE $(KERNELFLAGS)
 CFLAGS_MODULE   = $(MODFLAGS) -fno-pic
