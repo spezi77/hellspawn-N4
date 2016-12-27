@@ -21,7 +21,7 @@ HC_VER="$BASE_HC_VER$VER"
 # Vars
 export ARCH=arm
 export SUBARCH=arm
-export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-5.x/bin/arm-eabi-
+export CROSS_COMPILE=/home/spezi77/android/uber-tc/arm-eabi-6.x/bin/arm-eabi-
 export LOCALVERSION="-$HC_VER"
 
 # Paths
@@ -44,7 +44,7 @@ function make_kernel {
 }
 
 function make_cm_kernel {
-		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-5.4"
+		HC_VER="$BASE_HC_VER$VER-CM-UBERTC-6.x"
 		echo "[....Building `echo $HC_VER`....]"
 		make $DEFCONFIG
 		make $THREAD
@@ -52,7 +52,7 @@ function make_cm_kernel {
 }
 
 function make_aosp_kernel {
-		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.4"
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-6.x"
 		echo "[....Building `echo $HC_VER`....]"
 		make $DEFCONFIG
 		make $THREAD
@@ -60,7 +60,7 @@ function make_aosp_kernel {
 }
 
 function make_special_aosp_kernel {
-		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-5.4-CPUSET"
+		HC_VER="$BASE_HC_VER$VER-AOSP-UBERTC-6.x-CPUSET"
 		echo "[....Building `echo $HC_VER`....]"
 		make $DEFCONFIG
 		make $THREAD
