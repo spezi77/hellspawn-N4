@@ -67,13 +67,12 @@ function make_special_aosp_kernel {
 		cp -vr $ZIMAGE_DIR/$KERNEL $REPACK_DIR/tmp/anykernel
 }
 
-function git_addback_cm_commits {
+function git_addback_cm_patch {
 		branch_name=$(git symbolic-ref -q HEAD)
 		branch_name=${branch_name##refs/heads/}
 		branch_name=${branch_name:-HEAD}
 		git checkout -b temp-for-making-cm-build
-		git revert 6277686dfe412edf695878bd354dab504bd911a4 --no-edit
-		git revert afa96f6f21d05d44aa0df138e92cd5dc404e5a36 --no-edit
+		git revert fe4d203c80f7cb2d491af21ea19fe1a2bf69265c --no-edit
 }
 
 function git_addback_cpuset_commits {
@@ -213,7 +212,7 @@ case "$cchoice" in
 		clean_all
 		echo -e "${green}"
 		echo
-		git_addback_cm_commits
+		git_addback_cm_patch
 		make_cm_kernel
 		echo
 		echo -e "${restore}"
