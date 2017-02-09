@@ -1624,10 +1624,10 @@ config MSM_CPU_FREQ_MIN
 endif # CPU_FREQ_MSM
 
 config MSM_SLEEPER
-	bool "Limit max frequency and shut off cores while screen is off"
+	bool "Limit max frequency while screen is off"
 	default n
 	help
-	  Limit max frequency and shut off cores while screen is off
+	  Limit max frequency while screen is off
 
 config USERSPACE_VOLTAGE_CONTROL
 	bool "Enable Userspace CPU Voltage Control"
