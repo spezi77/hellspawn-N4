@@ -26,10 +26,6 @@
 extern uint32_t maxscroff;
 extern uint32_t maxscroff_freq;
 
-
-extern uint32_t ex_max_freq;
-static int limit_set = 0;
-
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void msm_sleeper_early_suspend(struct early_suspend *h)
 {
@@ -41,7 +37,6 @@ static void msm_sleeper_early_suspend(struct early_suspend *h)
 		msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, maxscroff_freq);
 		pr_info("Limit max frequency to: %d\n", maxscroff_freq);
 	}
-	limit_set = 1;
 
 	for (i = 1; i < num_cores; i++) {
 		if (cpu_online(i))
@@ -62,7 +57,6 @@ static void msm_sleeper_late_resume(struct early_suspend *h)
 		msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, MSM_CPUFREQ_NO_LIMIT);
 		pr_info("Restore max frequency to %d\n", MSM_CPUFREQ_NO_LIMIT);
 	}
-	limit_set = 0;
 
 	for (i = 1; i < num_cores; i++) {
 		if (!cpu_online(i))
